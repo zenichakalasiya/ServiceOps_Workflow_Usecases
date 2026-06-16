@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>UC1 · Live Inline Optimize · IF/Else → Branch · Motadata ServiceOps</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:ital,opsz,wght@0,6..12,400;0,6..12,500;0,6..12,600;0,6..12,700;0,6..12,800&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --blue:#2680eb; --blue-ink:#1b6fd6; --blue-700:#155bb5;
+    --blue-50:#eaf2fd; --blue-100:#d8e8fb; --blue-200:#bcd8f7;
+    --ink:#1f2a37; --ink-2:#34404e; --muted:#64748b; --faint:#94a3b8;
+    --line:#e7eaef; --line-2:#eef1f5; --line-strong:#dde2ea;
+    --canvas:#fcfcfd; --dot:#d9dee6; --rail:#fbfcfe; --paper:#ffffff;
+    --green:#15924f; --green-bg:#e6f6ec; --green-line:#bfe6cd; --green-ink:#0f7a40;
+    --amber:#c97d12; --amber-bg:#fbf0d8; --amber-line:#f0dcae; --amber-ink:#9a6206;
+    --red:#e5484d; --red-bg:#fdecec; --red-line:#f5c9cb; --red-ink:#c0322f;
+    --orange:#f5853f; --orange-bg:#fdeee2; --orange-line:#f7d4b8;
+    --purple:#7c5cf0; --purple-bg:#f0ecfd; --purple-line:#ddd2fa;
+    --chrome-line:#283342; --chrome-muted:#8b97a6;
+    --r-sm:6px; --r:8px; --r-lg:12px; --r-xl:16px;
+    --shadow-card:0 1px 2px rgba(20,30,45,.04), 0 1px 1px rgba(20,30,45,.03);
+    --shadow-node:0 4px 14px rgba(17,27,43,.08), 0 1px 3px rgba(17,27,43,.05);
+    --shadow-pop:0 12px 34px rgba(17,27,43,.16), 0 3px 10px rgba(17,27,43,.08);
+    --shadow-panel:-12px 0 34px rgba(17,27,43,.08);
+    --font:"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{font-family:var(--font); background:#0a0f15; color:var(--ink);
+    -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; overflow:hidden;}
+  button{font-family:inherit; cursor:pointer; border:none; background:none; color:inherit;}
+  input,textarea,select{font-family:inherit;}
+  ::-webkit-scrollbar{width:10px;height:10px;}
+  ::-webkit-scrollbar-thumb{background:#cbd3de; border-radius:20px; border:3px solid transparent; background-clip:content-box;}
+  ::-webkit-scrollbar-thumb:hover{background:#b3bdcb; background-clip:content-box;}
+
+  /* chrome */
+  #chrome{position:fixed; top:0; left:0; right:0; height:54px; z-index:50;
+    background:linear-gradient(180deg,#121a24,#0d131b); border-bottom:1px solid var(--chrome-line);
+    display:flex; align-items:center; padding:0 22px; gap:14px;}
+  .ch-brand{display:flex; align-items:center; gap:10px; color:#fff; font-weight:800; font-size:13.5px; letter-spacing:.2px; white-space:nowrap;}
+  .ch-brand .dot{width:9px;height:9px;border-radius:50%;background:var(--blue); box-shadow:0 0 0 4px rgba(38,128,235,.18);}
+  .ch-brand small{color:var(--chrome-muted); font-weight:600; letter-spacing:.3px; text-transform:uppercase; font-size:10.5px;}
+  .ch-tag{display:inline-flex;align-items:center;gap:6px;color:var(--blue);font-weight:800;font-size:11px;background:rgba(38,128,235,.12);border:1px solid rgba(38,128,235,.25);padding:4px 10px;border-radius:999px;letter-spacing:.3px;text-transform:uppercase;}
+  .ch-cap{color:var(--chrome-muted); font-size:12.5px; white-space:nowrap; overflow:hidden;}
+  .ch-cap b{color:#e7ecf2; font-weight:700;}
+  .ch-spacer{flex:1;}
+  .ch-replay{display:flex; align-items:center; gap:7px; padding:7px 12px; border-radius:9px; color:#cfd7e1;
+    border:1px solid var(--chrome-line); background:#10171f; font-weight:700; font-size:12px;}
+  .ch-replay:hover{background:#16202b; color:#fff;}
+
+  #stage{position:fixed; top:54px; left:0; right:0; bottom:0; overflow:hidden;
+    background:radial-gradient(120% 120% at 50% 0%, #161d27 0%, #0a0f15 70%);
+    display:flex; align-items:center; justify-content:center;}
+  #fit{position:absolute; transform-origin:center center;}
+  #app{width:1380px; height:884px; background:var(--paper); border-radius:14px; overflow:hidden; position:relative;
+    box-shadow:0 30px 80px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.04); display:flex; flex-direction:column;}
+
+  /* nav / rail / head */
+  .nav{height:52px; flex:0 0 52px; background:#fff; border-bottom:1px solid var(--line);
+    display:flex; align-items:center; padding:0 18px; gap:14px; position:relative; z-index:5;}
+  .logo{display:flex; align-items:center; gap:9px;}
+  .logo .wm{font-weight:800; font-size:20px; letter-spacing:-.5px; color:#1c2533;}
+  .logo .wm i{font-style:normal; color:#2680eb;}
+  .nav .grow{flex:1;}
+  .nav-ic{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#64748b;}
+  .nav-ic:hover{background:#f2f5f9;}
+  .nav-plus{width:34px;height:34px;border-radius:9px;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(38,128,235,.32);}
+  .nav-av{width:33px;height:33px;border-radius:9px;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;letter-spacing:.4px;}
+  .body{flex:1; display:flex; min-height:0;}
+  .rail{width:54px; flex:0 0 54px; background:var(--rail); border-right:1px solid var(--line);
+    display:flex; flex-direction:column; align-items:center; padding:12px 0 10px;}
+  .rail .ic{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;color:#7a879a;margin-bottom:5px;}
+  .rail .ic:hover{background:#eef2f8; color:#445}
+  .rail .ic.on{color:var(--blue); background:#e8f1fd;}
+  .rail .grow{flex:1;}
+  .rail .itsm{writing-mode:vertical-rl; transform:rotate(180deg); font-weight:800; color:var(--blue); letter-spacing:2px; font-size:11px; margin-bottom:10px;}
+  .work-main{flex:1; display:flex; flex-direction:column; min-width:0; min-height:0; position:relative;}
+  .head{height:56px; flex:0 0 56px; background:#fff; border-bottom:1px solid var(--line);
+    display:flex; align-items:center; padding:0 18px; gap:12px; position:relative; z-index:6;}
+  .head .back{width:34px;height:34px;border-radius:8px;border:1px solid var(--line-strong);display:flex;align-items:center;justify-content:center;color:#64748b;}
+  .head h1{font-size:18px; font-weight:800; color:#1c2533; margin:0; letter-spacing:-.2px; white-space:nowrap; flex:0 0 auto;}
+  .head .grow{flex:1;}
+
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border-radius:8px;font-weight:700;font-size:13px;padding:9px 15px;transition:.13s;white-space:nowrap;}
+  .btn-pri{background:var(--blue);color:#fff;box-shadow:0 2px 6px rgba(38,128,235,.28);}
+  .btn-pri:hover{background:var(--blue-ink);}
+  .btn-ghost{background:#fff;border:1px solid var(--line-strong);color:var(--ink-2);}
+  .btn-ghost:hover{background:#f6f8fb;border-color:#cfd6e0;}
+  .btn-sm{padding:6px 11px;font-size:12px;border-radius:7px;}
+  .chip{display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:6px 13px 6px 11px;font-weight:800;font-size:12.5px;border:1px solid;}
+  .chip-blue{background:var(--blue-50);color:var(--blue-700);border-color:var(--blue-100);}
+  .chip-green{background:var(--green-bg);color:var(--green-ink);border-color:var(--green-line);}
+  .chip:hover{transform:translateY(-1px);}
+  .link{color:var(--blue);font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;}
+  .link:hover{text-decoration:underline;}
+
+  /* work area */
+  .work{flex:1; display:flex; min-height:0; min-width:0; position:relative;}
+  .canvas{flex:1; min-height:0; position:relative; overflow:auto; cursor:grab;
+    background-color:var(--canvas);
+    background-image:radial-gradient(var(--dot) 1.4px, transparent 1.4px);
+    background-size:22px 22px; background-position:-1px -1px;}
+  .canvas.grabbing{cursor:grabbing; user-select:none;}
+  .content{position:relative;}
+  .edges{position:absolute; inset:0; pointer-events:none; overflow:visible;}
+
+  /* graph nodes */
+  .gnode{position:absolute; background:#fff; border:1px solid var(--line-strong); border-radius:12px;
+    box-shadow:var(--shadow-node); padding:11px 12px; transition:box-shadow .12s, border-color .12s; cursor:grab;}
+  .gnode:hover{border-color:#c6d2e2;}
+  .gnode:active{cursor:grabbing;}
+  .gnode.sel{border-color:var(--blue); box-shadow:0 0 0 3px rgba(38,128,235,.16), var(--shadow-node);}
+  .gnode .gh{display:flex; align-items:center; gap:9px; font-weight:800; font-size:13.5px; color:#1c2533;}
+  .gic{width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex:0 0 26px;}
+  .gic.trig{background:var(--blue-50);color:var(--blue);}
+  .gic.ifelse{background:var(--orange-bg);color:var(--orange);}
+  .gic.branch{background:var(--orange-bg);color:var(--orange);}
+  .gic.action{background:var(--green-bg);color:var(--green);}
+  .gic.end{background:#eef1f6;color:#7a879a;}
+  .ppill{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:800;letter-spacing:.3px;color:#5d6470;background:#eef1f6;border:1px solid var(--line);padding:2px 9px;border-radius:6px;}
+  .ppill.branchp{color:var(--blue-700);background:var(--blue-50);border-color:var(--blue-100);}
+  .ppill.any{color:var(--purple);background:var(--purple-bg);border-color:var(--purple-line);margin-left:5px;}
+  .condbox{background:#f4f6fa;border:1px solid var(--line-2);border-radius:8px;padding:7px 10px;font-size:12.5px;color:var(--ink);font-weight:600;line-height:1.35;}
+  .condbox b{color:#1c2533;font-weight:800;}
+  .condbox .more{color:var(--faint);font-weight:700;}
+  .condbox.sm{padding:6px 9px;font-size:12px;}
+  .gsub{font-size:11.5px;color:var(--muted);margin-top:2px;}
+  .gt{font-weight:700;font-size:13px;color:var(--ink);}
+  .handle{position:absolute;width:11px;height:11px;border-radius:50%;background:#fff;border:2px solid var(--blue-200);}
+
+  /* IF/Else node — vertical hierarchy: title / IF row / Else row */
+  .gif{padding:11px 12px;}
+  .gif-title{display:flex;align-items:center;gap:9px;font-weight:800;font-size:13.5px;color:#1c2533;height:28px;}
+  .gif-row{display:flex;align-items:center;gap:8px;}
+  .gif-row.r-if{height:40px;margin-top:8px;}
+  .gif-row.r-else{height:28px;margin-top:8px;}
+  .condbox.trunc{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .gbranch .brow2{display:flex;flex-direction:column;justify-content:center;gap:6px;}
+  .gbranch .brow2 .bp{display:flex;align-items:center;gap:6px;}
+  .gassign{display:flex;align-items:center;gap:10px;}
+
+  /* edge labels */
+  .elabel{position:absolute;transform:translate(-50%,-50%);font-size:10px;font-weight:800;letter-spacing:.2px;padding:2px 8px;border-radius:999px;white-space:nowrap;pointer-events:none;}
+  .elabel.true{color:var(--green-ink);background:var(--green-bg);border:1px solid var(--green-line);}
+  .elabel.false{color:var(--red-ink);background:var(--red-bg);border:1px solid var(--red-line);}
+  .elabel.branchout{color:var(--blue-700);background:#fff;border:1px solid var(--blue-100);}
+  .elabel.default{color:var(--muted);background:#fff;border:1px solid var(--line);}
+
+  /* lasso (group highlight) */
+  .lasso{position:absolute;border:2px dashed var(--blue);border-radius:16px;background:rgba(38,128,235,.05);pointer-events:none;animation:lassoIn .3s ease both;}
+  .lasso-badge{position:absolute;top:-13px;left:16px;display:inline-flex;align-items:center;gap:6px;background:var(--blue);color:#fff;font-size:11px;font-weight:800;padding:4px 11px;border-radius:999px;box-shadow:0 4px 12px rgba(38,128,235,.3);pointer-events:auto;cursor:pointer;}
+
+  /* suggestion banner */
+  .sugg{position:absolute;top:18px;left:50%;transform:translateX(-50%);z-index:20;
+    display:flex;align-items:center;gap:13px;background:#fff;border:1px solid var(--blue-200);border-radius:14px;
+    padding:11px 12px 11px 14px;box-shadow:var(--shadow-pop);max-width:640px;animation:rise .26s cubic-bezier(.2,.8,.25,1) both;}
+  .sugg .si{width:38px;height:38px;border-radius:11px;background:var(--blue-50);color:var(--blue);display:flex;align-items:center;justify-content:center;flex:0 0 38px;}
+  .sugg .lbl{font-size:9.5px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--blue-700);}
+  .sugg .stxt{font-size:12.5px;color:var(--ink-2);line-height:1.4;margin-top:2px;}
+  .sugg .stxt b{color:#1c2533;font-weight:800;}
+  .reopen{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);z-index:20;display:flex;align-items:center;gap:9px;background:#fff;border:1px solid var(--line-strong);border-radius:999px;padding:9px 15px 9px 12px;box-shadow:var(--shadow-pop);font-size:12.5px;font-weight:800;color:var(--ink-2);}
+  .reopen:hover{border-color:var(--blue);color:var(--blue-700);}
+
+  /* ===== side popover (overlays canvas — never reflows the graph) ===== */
+  .sp{position:absolute; top:0; right:0; bottom:0; width:432px; z-index:30;
+    background:#fff;border-left:1px solid var(--line);box-shadow:var(--shadow-panel);display:flex;flex-direction:column;min-height:0;animation:slideIn .26s cubic-bezier(.2,.8,.25,1) both;}
+
+  /* reopen tab — pinned to right edge when the drawer is closed */
+  .sp-reopen{position:absolute; right:0; top:50%; transform:translateY(-50%); z-index:25;
+    display:flex; flex-direction:column; align-items:center; gap:9px;
+    background:#fff; border:1px solid var(--line-strong); border-right:none; border-radius:12px 0 0 12px;
+    padding:14px 10px; box-shadow:-6px 0 18px rgba(17,27,43,.10); color:var(--blue-700); cursor:pointer; transition:.13s;
+    animation:tabIn .24s cubic-bezier(.2,.8,.25,1) both;}
+  .sp-reopen:hover{background:var(--blue-50); padding-right:14px;}
+  .sp-reopen .tic{width:28px;height:28px;border-radius:8px;background:var(--blue-50);display:flex;align-items:center;justify-content:center;}
+  .sp-reopen .lab{writing-mode:vertical-rl; transform:rotate(180deg); font-weight:800; font-size:11.5px; letter-spacing:.4px; color:var(--ink-2);}
+  @keyframes tabIn{from{transform:translate(14px,-50%);opacity:0}to{transform:translate(0,-50%);opacity:1}}
+
+  /* small optimize suggestion popup, lives inside the drawer */
+  .optpop{position:relative;border:1px solid var(--blue-200);background:linear-gradient(180deg,#f5f9ff,#eaf2fd);border-radius:12px;padding:13px;margin-bottom:16px;box-shadow:0 6px 16px rgba(38,128,235,.10);}
+  .optpop .oph{display:flex;align-items:center;gap:9px;margin-bottom:8px;}
+  .optpop .opic{width:30px;height:30px;border-radius:9px;background:#fff;color:var(--blue);display:flex;align-items:center;justify-content:center;flex:0 0 30px;box-shadow:0 1px 3px rgba(38,128,235,.22);}
+  .optpop .oplbl{font-size:9.5px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--blue-700);}
+  .optpop .optitle{font-size:13px;font-weight:800;color:#1c2533;margin-top:1px;}
+  .optpop .opsub{font-size:12px;color:var(--ink-2);line-height:1.45;margin-bottom:11px;}
+  .optpop .opx{position:absolute;top:9px;right:9px;width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#94a3b8;}
+  .optpop .opx:hover{background:rgba(255,255,255,.7);color:var(--ink-2);}
+  .sp-top{display:flex;align-items:center;gap:8px;padding:11px 16px;border-bottom:1px solid var(--line-2);}
+  .sp-top .gobk{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;color:var(--muted);}
+  .sp-top .gobk:hover{color:var(--blue-700);}
+  .sp-act{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:#7a879a;border:1px solid var(--line);}
+  .sp-act:hover{background:#f4f7fb;color:var(--ink-2);}
+  .sp-act.danger:hover{color:var(--red);border-color:var(--red-line);background:var(--red-bg);}
+  .sp-scroll{flex:1;min-height:0;overflow-y:auto;padding:16px 16px 16px;}
+  .sp-title{display:flex;align-items:center;gap:9px;}
+  .sp-title h2{font-size:16px;font-weight:800;color:#1c2533;margin:0;}
+  .sp-blurb{font-size:12px;color:var(--muted);line-height:1.45;margin:7px 0 15px;}
+  .sp-blurb a{color:var(--blue);font-weight:700;}
+  .lbl2{display:block;font-size:12px;font-weight:700;color:var(--ink-2);margin:0 0 6px;}
+  .lbl2 .req{color:var(--red);}
+  .inp,.sel{width:100%;border:1px solid var(--line-strong);border-radius:9px;padding:9px 11px;font-size:13px;color:var(--ink);background:#fff;}
+  .inp::placeholder{color:var(--faint);}
+  .sel{display:flex;align-items:center;justify-content:space-between;color:var(--faint);cursor:pointer;}
+  .sel.filled{color:var(--ink);font-weight:600;}
+  .hint{font-size:11px;color:var(--faint);margin:6px 0 0;}
+  .field{margin-bottom:15px;}
+
+  .checkif{display:inline-flex;align-items:center;font-size:11.5px;font-weight:800;color:var(--ink-2);background:#fff;border:1px solid var(--line-strong);border-radius:7px;padding:5px 11px;margin-bottom:10px;}
+  .matchrow{font-size:12.5px;color:var(--ink-2);font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+  .seg-mini{display:inline-flex;align-items:center;gap:5px;font-weight:800;color:var(--purple);background:var(--purple-bg);border:1px solid var(--purple-line);border-radius:7px;padding:3px 9px;}
+  .condwrap{border:1px solid var(--line-2);border-radius:9px;background:#fff;padding:10px;margin-bottom:9px;}
+  .condhd{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;color:var(--ink);cursor:pointer;}
+  .condgrid{display:flex;gap:7px;margin-top:9px;}
+  .condgrid .sel{flex:1;font-size:12px;padding:7px 9px;}
+  .valrow{display:flex;align-items:center;gap:7px;margin-top:7px;}
+  .valrow .dd{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:700;color:var(--ink-2);border:1px solid var(--line-strong);border-radius:7px;padding:6px 9px;flex:0 0 auto;}
+  .valbox{flex:1;border:1px solid var(--line-strong);border-radius:7px;padding:6px 9px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;min-height:33px;font-size:12.5px;font-weight:700;color:var(--ink);}
+  .vchip{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:var(--blue-700);background:var(--blue-50);border:1px solid var(--blue-100);border-radius:6px;padding:2px 7px;}
+  .addc{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--blue);margin-top:4px;}
+  .addc:hover{text-decoration:underline;}
+  .bcard{border:1px solid var(--line);border-radius:12px;background:#fbfcfe;padding:13px;margin-bottom:13px;}
+  .bcard.def{background:#f7f9fc;}
+  .bcard-h{display:flex;align-items:center;gap:8px;margin-bottom:11px;}
+  .bcard-h .bn{font-size:11.5px;font-weight:800;color:#5d6470;background:#eef1f6;border:1px solid var(--line);padding:3px 11px;border-radius:7px;}
+  .bcard-h .bn.on{color:var(--blue-700);background:var(--blue-50);border-color:var(--blue-100);}
+  .addgrp{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--ink-2);border:1px dashed var(--line-strong);border-radius:8px;padding:7px 11px;}
+  .addgrp:hover{border-color:var(--blue);color:var(--blue-700);}
+  .addbranch{width:100%;display:flex;align-items:center;justify-content:center;gap:7px;border:1.5px solid var(--blue-200);color:var(--blue-700);background:var(--blue-50);border-radius:10px;padding:10px;font-weight:800;font-size:12.5px;margin-bottom:14px;}
+  .addbranch:hover{background:var(--blue-100);}
+  .sp-foot{flex:0 0 auto;display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:12px 16px;border-top:1px solid var(--line-2);background:#fff;}
+
+  /* next node selection */
+  .nns{margin-top:8px;padding-top:16px;border-top:1px solid var(--line-2);}
+  .nns h3{font-size:14.5px;font-weight:800;color:#1c2533;margin:0 0 2px;}
+  .nns .sub{font-size:12px;color:var(--muted);margin:0 0 14px;}
+  .nns-row{margin-bottom:14px;}
+  .nns-branch{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;color:var(--ink-2);margin-bottom:8px;}
+  .nns-branch .bic{width:24px;height:24px;border-radius:7px;background:var(--orange-bg);color:var(--orange);display:flex;align-items:center;justify-content:center;flex:0 0 24px;}
+  .nns-branch .bic.def{background:#eef1f6;color:#7a879a;}
+  .addstep{width:100%;display:flex;align-items:center;gap:9px;border:1.5px dashed var(--line-strong);border-radius:9px;padding:12px 13px;font-size:12.5px;font-weight:600;color:var(--faint);background:#fcfdff;margin-left:8px;text-align:left;}
+  .addstep:hover{border-color:var(--blue);color:var(--blue-700);background:var(--blue-50);}
+
+  .swapnote{display:flex;align-items:flex-start;gap:9px;border-radius:10px;padding:10px 12px;margin-bottom:15px;font-size:12px;line-height:1.45;}
+  .swapnote.green{background:var(--green-bg);border:1px solid var(--green-line);color:var(--green-ink);}
+  .swapnote.blue{background:var(--blue-50);border:1px solid var(--blue-100);color:var(--blue-700);}
+  .swapnote b{font-weight:800;}
+  .swapnote .cta{text-decoration:underline;cursor:pointer;font-weight:800;}
+
+  /* ===== preview modal ===== */
+  .scrim{position:absolute;inset:0;z-index:40;background:rgba(15,23,35,.34);backdrop-filter:blur(1.5px);}
+  .modal-wrap{position:absolute;inset:0;z-index:42;display:flex;align-items:center;justify-content:center;padding:24px;}
+  .modal{background:#fff;border-radius:16px;box-shadow:var(--shadow-pop);display:flex;flex-direction:column;overflow:hidden;width:900px;max-height:680px;}
+  .modal-head{padding:15px 20px;border-bottom:1px solid var(--line-2);display:flex;align-items:center;gap:12px;}
+  .modal-body{padding:18px 20px;overflow-y:auto;flex:1;}
+  .modal-foot{padding:13px 20px;border-top:1px solid var(--line-2);display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  .pi{width:32px;height:32px;border-radius:9px;background:var(--blue-50);color:var(--blue);display:flex;align-items:center;justify-content:center;flex:0 0 32px;}
+
+  .pvcols{display:flex;align-items:stretch;gap:0;}
+  .pvcol{flex:1;min-width:0;display:flex;flex-direction:column;}
+  .pvhd{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800;color:var(--ink-2);margin-bottom:9px;}
+  .pvhd .pn{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 7px;border-radius:999px;font-size:11px;font-weight:800;}
+  .pvhd .pn.before{background:var(--orange-bg);color:#b25a14;}
+  .pvhd .pn.after{background:var(--blue-50);color:var(--blue-700);}
+  .pvbox{border:1px solid var(--line);border-radius:12px;background:#fcfdff;height:330px;overflow-y:auto;
+    background-image:radial-gradient(#e2e8f2 1.2px,transparent 1.2px);background-size:16px 16px;padding:13px;}
+  .pvarrow{flex:0 0 54px;display:flex;align-items:center;justify-content:center;color:var(--blue);}
+  .pvarrow .circle{width:34px;height:34px;border-radius:50%;background:var(--blue-50);display:flex;align-items:center;justify-content:center;}
+  .mini-stack{display:flex;flex-direction:column;gap:0;}
+  .mini-if{border:1px solid var(--line);border-radius:9px;padding:8px 10px;background:#fff;}
+  .mini-conn{width:2px;height:12px;background:var(--line-strong);margin:0 auto;}
+  .mini-if .t{font-size:11.5px;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:6px;}
+  .mini-if .s{font-size:10.5px;color:var(--muted);margin-top:4px;display:flex;align-items:center;gap:5px;}
+  .mini-branch{border:1.5px solid var(--blue);border-radius:12px;background:#fff;padding:11px;box-shadow:0 4px 12px rgba(38,128,235,.08);}
+  .mini-bh{display:flex;align-items:center;gap:7px;font-weight:800;font-size:12.5px;color:#1c2533;margin-bottom:8px;}
+  .mini-path{border:1px solid var(--line);border-radius:9px;padding:9px;}
+  .mini-path.def{border-style:dashed;background:#fafbfc;margin-top:8px;}
+  .mini-cl{display:flex;flex-direction:column;gap:5px;margin-top:7px;}
+  .mini-cond{font-size:11px;color:var(--ink-2);font-weight:600;background:#f4f6fa;border:1px solid var(--line-2);border-radius:6px;padding:4px 8px;display:flex;align-items:center;gap:6px;}
+  .mini-cond .or{font-size:9px;font-weight:800;color:var(--purple);background:var(--purple-bg);border:1px solid var(--purple-line);border-radius:4px;padding:1px 5px;}
+
+  /* toast */
+  .toast{position:absolute;left:50%;top:14px;transform:translateX(-50%);z-index:80;
+    display:flex;align-items:center;gap:12px;background:#101a26;color:#fff;border-radius:11px;padding:11px 14px 11px 16px;
+    box-shadow:var(--shadow-pop);font-size:13px;font-weight:600;max-width:600px;animation:rise .24s cubic-bezier(.2,.8,.25,1) both;}
+  .toast .ck{width:20px;height:20px;border-radius:50%;background:#19a259;display:flex;align-items:center;justify-content:center;flex:0 0 20px;}
+  .toast .ck.info{background:var(--blue);}
+  .toast .undo{border:1px solid #33414f;background:#1b2532;color:#fff;border-radius:7px;padding:5px 11px;font-weight:800;font-size:12px;display:flex;align-items:center;gap:5px;}
+  .toast .undo:hover{background:#243140;}
+
+  @keyframes rise{from{transform:translateY(10px) translateX(-50%);opacity:.4}to{transform:translateY(0) translateX(-50%);opacity:1}}
+  @keyframes slideIn{from{transform:translateX(34px);opacity:.6}to{transform:translateX(0);opacity:1}}
+  @keyframes fadeIn{from{opacity:.4}to{opacity:1}}
+  @keyframes lassoIn{from{opacity:0;transform:scale(.99)}to{opacity:1;transform:scale(1)}}
+  .fade-in{animation:fadeIn .2s ease both;}
+  .pop-in{animation:popIn .22s cubic-bezier(.2,.9,.3,1.2) both;}
+  @keyframes popIn{from{transform:scale(.975);opacity:.6}to{transform:scale(1);opacity:1}}
+</style>
+</head>
+<body>
+  <div id="chrome"></div>
+  <div id="stage"><div id="fit"><div id="app"></div></div></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+
+  <script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef } = React;
+
+/* ===== Icons ===== */
+const I = (p) => {
+  const { sw=1.7, vb="0 0 24 24", children, size=18, color, ...rest } = p;
+  return (<svg width={size} height={size} viewBox={vb} fill="none" stroke={color||"currentColor"} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" {...rest}>{children}</svg>);
+};
+const Ic = {
+  plus:(p)=><I {...p}><path d="M12 5v14M5 12h14"/></I>,
+  addbox:(p)=><I {...p}><rect x="3" y="3" width="18" height="18" rx="3.5"/><path d="M12 8v8M8 12h8"/></I>,
+  calendar:(p)=><I {...p}><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9h18M8 2.5v4M16 2.5v4"/></I>,
+  bell:(p)=><I {...p}><path d="M6 9a6 6 0 1112 0c0 5 2 6 2 6H4s2-1 2-6z"/><path d="M10.5 20a2 2 0 003 0"/></I>,
+  gear:(p)=><I {...p}><circle cx="12" cy="12" r="3.1"/><path d="M19.4 13.5a1.6 1.6 0 00.3 1.8 2 2 0 11-2.8 2.8 1.6 1.6 0 00-2.7.7 2 2 0 11-4 0 1.6 1.6 0 00-1-1.5 1.6 1.6 0 00-1.8.3 2 2 0 11-2.8-2.8 1.6 1.6 0 00.3-1.8 1.6 1.6 0 00-1.5-1 2 2 0 010-4 1.6 1.6 0 001.5-1 1.6 1.6 0 00-.3-1.8A2 2 0 116 3.4a1.6 1.6 0 001.8.3 1.6 1.6 0 001-1.5 2 2 0 014 0 1.6 1.6 0 001 1.5 1.6 1.6 0 001.8-.3 2 2 0 112.8 2.8 1.6 1.6 0 00-.3 1.8 1.6 1.6 0 001.5 1 2 2 0 010 4 1.6 1.6 0 00-1.5 1z"/></I>,
+  keyboard:(p)=><I {...p}><rect x="2.5" y="6" width="19" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></I>,
+  warn2:(p)=><I {...p}><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></I>,
+  chevL:(p)=><I {...p}><path d="M15 6l-6 6 6 6"/></I>,
+  chevR:(p)=><I {...p}><path d="M9 6l6 6-6 6"/></I>,
+  chevD:(p)=><I {...p}><path d="M6 9l6 6 6-6"/></I>,
+  close:(p)=><I {...p}><path d="M6 6l12 12M18 6L6 18"/></I>,
+  spark:(p)=><I {...p}><path d="M12 3l1.8 4.6L18 9l-4.2 1.4L12 15l-1.8-4.6L6 9l4.2-1.4z"/><path d="M5 16l.8 2 .8-2 .8 2M18 4l.6 1.5.6-1.5"/></I>,
+  check:(p)=><I {...p} sw={2.2}><path d="M5 12.5l4.2 4.2L19 7"/></I>,
+  checkC:(p)=><I {...p}><circle cx="12" cy="12" r="9"/><path d="M8.3 12.3l2.6 2.6L16 9.5"/></I>,
+  info:(p)=><I {...p}><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></I>,
+  arrow:(p)=><I {...p}><path d="M5 12h14M13 6l6 6-6 6"/></I>,
+  undo:(p)=><I {...p}><path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 110 10h-4"/></I>,
+  branch:(p)=><I {...p}><circle cx="6" cy="6" r="2.2"/><circle cx="18" cy="6" r="2.2"/><circle cx="6" cy="18" r="2.2"/><path d="M6 8.2v7.6M8.2 6H16M16 6a8 8 0 01-8 8"/></I>,
+  ifelse:(p)=><I {...p}><circle cx="6" cy="5" r="2.2"/><circle cx="6" cy="19" r="2.2"/><circle cx="18" cy="19" r="2.2"/><path d="M6 7.2v9.6M6 12h9a3 3 0 013 3v1.6"/></I>,
+  flag:(p)=><I {...p}><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></I>,
+  trigger:(p)=><I {...p}><path d="M13 2L4.5 13H11l-1 9 8.5-11H12l1-9z"/></I>,
+  swap:(p)=><I {...p}><path d="M7 4L3 8l4 4"/><path d="M3 8h13a4 4 0 014 4M17 20l4-4-4-4"/><path d="M21 16H8a4 4 0 01-4-4"/></I>,
+  trash:(p)=><I {...p}><path d="M4 7h16M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2M6 7l1 13a1 1 0 001 1h8a1 1 0 001-1l1-13"/></I>,
+  dots:(p)=><I {...p}><circle cx="12" cy="5" r="1.4" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="12" cy="19" r="1.4" fill="currentColor" stroke="none"/></I>,
+  copy:(p)=><I {...p}><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></I>,
+  ext:(p)=><I {...p} size={p.size||13}><path d="M14 4h6v6M20 4l-9 9M18 13v5a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2h5"/></I>,
+  refresh:(p)=><I {...p} size={p.size||13}><path d="M20 11a8 8 0 00-14-4.6L4 8M4 4v4h4"/><path d="M4 13a8 8 0 0014 4.6L20 16M20 20v-4h-4"/></I>,
+  eye:(p)=><I {...p}><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></I>,
+  dashboard:(p)=><I {...p}><circle cx="12" cy="12" r="9"/><path d="M12 12l4-3"/></I>,
+  ticket:(p)=><I {...p}><path d="M4 7.5A1.5 1.5 0 015.5 6h13A1.5 1.5 0 0120 7.5V10a2 2 0 000 4v2.5A1.5 1.5 0 0118.5 18h-13A1.5 1.5 0 014 16.5V14a2 2 0 000-4z"/><path d="M14 6v12"/></I>,
+  people:(p)=><I {...p}><circle cx="9" cy="8" r="3"/><path d="M3.5 19a5.5 5.5 0 0111 0M16 5.2a3 3 0 010 5.6M19.5 19a5.5 5.5 0 00-3-4.9"/></I>,
+  loop:(p)=><I {...p}><path d="M17 3l3 3-3 3"/><path d="M20 6H8a4 4 0 00-4 4M7 21l-3-3 3-3"/><path d="M4 18h12a4 4 0 004-4"/></I>,
+  share:(p)=><I {...p}><path d="M12 15V4M8 8l4-4 4 4M5 14v4a2 2 0 002 2h10a2 2 0 002-2v-4"/></I>,
+  monitor:(p)=><I {...p}><rect x="3" y="4.5" width="18" height="12" rx="2"/><path d="M8 20.5h8M12 16.5v4"/></I>,
+  box:(p)=><I {...p}><path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></I>,
+  sitemap:(p)=><I {...p}><rect x="9" y="3" width="6" height="5" rx="1.2"/><rect x="3" y="16" width="6" height="5" rx="1.2"/><rect x="15" y="16" width="6" height="5" rx="1.2"/><path d="M12 8v4M6 16v-2h12v2"/></I>,
+  bulb:(p)=><I {...p}><path d="M9 18h6M10 21h4M8.5 14a5 5 0 117 0c-.8.8-1.5 1.6-1.5 2.5h-4c0-.9-.7-1.7-1.5-2.5z"/></I>,
+  doc:(p)=><I {...p}><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 13h6M9 17h6"/></I>,
+  checklist:(p)=><I {...p}><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6l1 1 1.5-2M4 12l1 1 1.5-2M4 18l1 1 1.5-2"/></I>,
+};
+const RAIL = ["dashboard","ticket","people","loop","share","monitor","gear","box","sitemap","bulb","doc","checklist"];
+
+/* ===== Data — an OR-ladder: many IF/Else, all leading to the SAME action ===== */
+const CONDS = [
+  ["Priority", "is", "Critical"],
+  ["Impact", "is", "High"],
+  ["Urgency", "is", "Urgent"],
+  ["Category", "is", "Security"],
+  ["Source", "is", "Phone"],
+  ["Requester VIP", "is", "Yes"],
+  ["SLA Status", "is", "Breached"],
+];
+const NC = CONDS.length;
+const ACTION = "Flag as Major Incident";
+const condText = (c) => `${c[0]} ${c[1]} ${c[2]}`;
+
+/* IF/Else node geometry — vertical hierarchy: title / IF row / Else row.
+   Port offsets are the vertical centers of the IF row (Is True) and Else row (Is False). */
+const IFW = 360, IFH = 134, IF_PORT = 67, ELSE_PORT = 109;
+
+/* ===== layout engine ===== */
+/* node port helpers */
+const ft = (b)=>({x:b.x+42, y:b.y});            // flow top
+const fb = (b)=>({x:b.x+42, y:b.y+b.h});         // flow bottom
+const rm = (b)=>({x:b.x+b.w, y:b.y+b.h/2});      // right middle
+const lm = (b)=>({x:b.x, y:b.y+b.h/2});          // left middle
+function frame(nodes) {
+  const maxX = Math.max(...nodes.map(n=>n.x+n.w));
+  const maxY = Math.max(...nodes.map(n=>n.y+n.h));
+  return { contentW:Math.max(1200, maxX+500), contentH:Math.max(960, maxY+400) };
+}
+
+function buildBefore(pos) {
+  pos = pos || {};
+  const NX=80, NW=IFW, NH=IFH, AX=580, AW=236, AH=70, TOP=150, VSTEP=178;
+  const P = {};
+  P.trig = { x:NX, y:36, w:268, h:90 };
+  CONDS.forEach((c,i)=>{ P["if"+i] = { x:NX, y:TOP+i*VSTEP, w:NW, h:NH }; });
+  const firstP = TOP+IF_PORT, lastP = TOP+(NC-1)*VSTEP+IF_PORT;
+  P.act = { x:AX, y:(firstP+lastP)/2-AH/2, w:AW, h:AH };
+  P.def = { x:NX, y:TOP+NC*VSTEP, w:NW, h:58 };
+  Object.keys(P).forEach(id=>{ if(pos[id]){ P[id].x=pos[id].x; P[id].y=pos[id].y; } });
+
+  const ifPort   = (b)=>({ x:b.x+b.w, y:b.y+IF_PORT });    // Is True (right, IF row)
+  const elsePort = (b)=>({ x:b.x+b.w, y:b.y+ELSE_PORT });  // Is False (right, Else row)
+
+  const nodes = [
+    { id:"trig", type:"trigger", ...P.trig },
+    ...CONDS.map((c,i)=>({ id:"if"+i, type:"ifelse", ...P["if"+i], data:{c,i} })),
+    { id:"act", type:"action", ...P.act, data:{text:ACTION} },
+    { id:"def", type:"end", ...P.def, data:{text:"No condition met → continue"} },
+  ];
+  const edges=[], labels=[];
+  edges.push({ from:fb(P.trig), to:ft(P["if0"]), kind:"flow" });
+  CONDS.forEach((c,i)=>{
+    edges.push({ from:ifPort(P["if"+i]), to:lm(P.act), kind:"true" });
+    const next = i<NC-1 ? P["if"+(i+1)] : P.def;
+    edges.push({ from:elsePort(P["if"+i]), to:ft(next), kind:"false", rightExit:true });
+    labels.push({ x:P["if"+i].x+P["if"+i].w+40, y:(P["if"+i].y+ELSE_PORT+next.y)/2, text:"Is False", kind:"false" });
+  });
+  labels.push({ x:(P["if0"].x+P["if0"].w+P.act.x)/2, y:P["if0"].y+IF_PORT-2, text:"Is True", kind:"true" });
+
+  const ifs = CONDS.map((c,i)=>P["if"+i]);
+  const lx=Math.min(...ifs.map(n=>n.x)), ly=Math.min(...ifs.map(n=>n.y));
+  const lr=Math.max(...ifs.map(n=>n.x+n.w)), lb=Math.max(...ifs.map(n=>n.y+n.h));
+  const lasso={ x:lx-16, y:ly-16, w:lr-lx+32, h:lb-ly+32 };
+  return { nodes, edges, labels, lasso, ...frame(nodes) };
+}
+
+function buildAfter(pos) {
+  pos = pos || {};
+  const NX=80, BRW=344, AX=580, AW=236, AH=70;
+  const BR_TOP=164, BR_HEADER=50, BR_PAD=12, BR_ROW=112, DEF_ROW=52;
+  const brH = BR_HEADER + BR_PAD + BR_ROW + DEF_ROW + BR_PAD;
+  const cyOff = BR_HEADER + BR_PAD + BR_ROW/2;
+  const dOff  = BR_HEADER + BR_PAD + BR_ROW + DEF_ROW/2;
+  const P = {};
+  P.trig = { x:NX, y:36, w:268, h:90 };
+  P.branch = { x:NX, y:BR_TOP, w:BRW, h:brH };
+  P.act = { x:AX, y:BR_TOP+cyOff-AH/2, w:AW, h:AH };
+  P.cont = { x:AX, y:BR_TOP+dOff-29, w:AW, h:58 };
+  Object.keys(P).forEach(id=>{ if(pos[id]){ P[id].x=pos[id].x; P[id].y=pos[id].y; } });
+
+  const nodes = [
+    { id:"trig", type:"trigger", ...P.trig },
+    { id:"branch", type:"branch", ...P.branch, data:{BR_HEADER, BR_PAD, BR_ROW, DEF_ROW} },
+    { id:"act", type:"action", ...P.act, data:{text:ACTION} },
+    { id:"cont", type:"end", ...P.cont, data:{text:"Continue workflow"} },
+  ];
+  const out1 = { x:P.branch.x+P.branch.w, y:P.branch.y+cyOff };
+  const outd = { x:P.branch.x+P.branch.w, y:P.branch.y+dOff };
+  const edges=[], labels=[];
+  edges.push({ from:fb(P.trig), to:ft(P.branch), kind:"flow" });
+  edges.push({ from:out1, to:lm(P.act), kind:"branchout" });
+  labels.push({ x:(out1.x+P.act.x)/2, y:out1.y, text:"Branch 1", kind:"branchout" });
+  edges.push({ from:outd, to:lm(P.cont), kind:"default" });
+  labels.push({ x:(outd.x+P.cont.x)/2, y:outd.y, text:"Default", kind:"default" });
+  return { nodes, edges, labels, ...frame(nodes) };
+}
+
+function edgePath(s, t) {
+  if (Math.abs(s.x - t.x) < 1 || Math.abs(s.y - t.y) < 1) return `M${s.x},${s.y} L${t.x},${t.y}`;
+  const mx = (s.x + t.x) / 2;
+  return `M${s.x},${s.y} H${mx} V${t.y} H${t.x}`;
+}
+const EDGE_COLOR = { flow:"#c2cad6", true:"#7ec99a", false:"#ef9ea1", branchout:"#9fc4f2", default:"#cdd5e0" };
+
+/* ===== drag-to-pan ===== */
+function useDragScroll() {
+  const cleanup = useRef(null);
+  return React.useCallback((el) => {
+    if (cleanup.current) { cleanup.current(); cleanup.current = null; }
+    if (!el) return;
+    let down=false, sx=0, sy=0, sl=0, st=0, moved=false;
+    const onDown=(e)=>{ if(e.button!==0) return; if(e.target.closest("button,a,input,select,textarea,.gnode,.sugg,.reopen,.lasso-badge")) return;
+      down=true; moved=false; sx=e.clientX; sy=e.clientY; sl=el.scrollLeft; st=el.scrollTop; el.classList.add("grabbing"); };
+    const onMove=(e)=>{ if(!down) return; const dx=e.clientX-sx, dy=e.clientY-sy; if(!moved && Math.abs(dx)+Math.abs(dy)>3) moved=true;
+      if(moved){ e.preventDefault(); el.scrollLeft=sl-dx; el.scrollTop=st-dy; } };
+    const onUp=()=>{ down=false; el.classList.remove("grabbing"); };
+    el.addEventListener("mousedown", onDown);
+    window.addEventListener("mousemove", onMove, {passive:false});
+    window.addEventListener("mouseup", onUp);
+    cleanup.current=()=>{ el.removeEventListener("mousedown",onDown); window.removeEventListener("mousemove",onMove); window.removeEventListener("mouseup",onUp); };
+  }, []);
+}
+
+/* ===== chrome ===== */
+function Logo(){return(<div className="logo"><svg viewBox="0 0 32 32" fill="none" width="24" height="24"><circle cx="16" cy="16" r="13" stroke="#e2e8f0" strokeWidth="3.4"/><path d="M16 3a13 13 0 0113 13" stroke="#2680eb" strokeWidth="3.4" strokeLinecap="round"/><path d="M29 16a13 13 0 01-7 11.5" stroke="#27c0c8" strokeWidth="3.4" strokeLinecap="round"/></svg><span className="wm">m<i>o</i>tadata</span></div>);}
+function NavBar(){return(<div className="nav"><Logo/><div className="grow"/><button className="nav-plus"><Ic.plus size={19}/></button><button className="nav-ic"><Ic.calendar size={18}/></button><button className="nav-ic"><Ic.bell size={18}/></button><button className="nav-ic"><Ic.gear size={18}/></button><button className="nav-ic"><Ic.keyboard size={18}/></button><button className="nav-ic"><Ic.warn2 size={18}/></button><button className="nav-av">AS</button></div>);}
+function Rail(){return(<div className="rail">{RAIL.map((k,i)=>(<button key={k} className={"ic"+(i===3?" on":"")}>{React.createElement(Ic[k]||Ic.box,{size:19})}</button>))}<div className="grow"/><div className="itsm">ITSM</div></div>);}
+
+/* ===== graph node renderer ===== */
+function NodeCard({ n, S }) {
+  const sel = (n.type==="ifelse" && S.selected==="group") || (n.type==="branch" && S.selected==="branch");
+  const common = { left:n.x, top:n.y, width:n.w, minHeight:n.h };
+  if (n.type === "trigger")
+    return (<div className="gnode" style={common} onMouseDown={(e)=>S.startDrag(e,n)}>
+      <div className="gh"><span className="gic trig"><Ic.trigger size={15}/></span> Trigger</div>
+      <div className="condbox" style={{marginTop:8}}>Incident is <b>created</b></div>
+      <span className="handle" style={{left:37, top:n.h-5}}/>
+    </div>);
+  if (n.type === "ifelse") {
+    const { c } = n.data;
+    return (<div className={"gnode gif"+(sel?" sel":"")} style={common} onMouseDown={(e)=>S.startDrag(e,n)}>
+      <div className="gif-title"><span className="gic ifelse"><Ic.ifelse size={15}/></span> IF / Else</div>
+      <div className="gif-row r-if">
+        <span className="ppill">IF</span>
+        <div className="condbox sm trunc" title={`${c[0]} ${c[1]} ${c[2]}`}>{c[0]} {c[1]} <b>{c[2]}</b></div>
+      </div>
+      <div className="gif-row r-else"><span className="ppill">Else</span></div>
+      <span className="handle" style={{left:37, top:-5}}/>
+      <span className="handle" style={{left:n.w-5, top:IF_PORT-5, borderColor:"#7ec99a"}}/>
+      <span className="handle" style={{left:n.w-5, top:ELSE_PORT-5, borderColor:"#ef9ea1"}}/>
+    </div>);
+  }
+  if (n.type === "action")
+    return (<div className="gnode gassign" style={common} onMouseDown={(e)=>S.startDrag(e,n)}>
+      <span className="gic action"><Ic.flag size={15}/></span>
+      <div><div className="gsub" style={{marginTop:0}}>Action</div><div className="gt">{n.data.text}</div></div>
+      <span className="handle" style={{left:-5, top:n.h/2-5}}/>
+    </div>);
+  if (n.type === "end")
+    return (<div className="gnode" style={{...common, borderStyle:"dashed", background:"#fafbfc", display:"flex", alignItems:"center", gap:9}} onMouseDown={(e)=>S.startDrag(e,n)}>
+      <span className="gic end"><Ic.arrow size={14}/></span>
+      <div className="gsub" style={{marginTop:0, fontWeight:700}}>{n.data.text}</div>
+      <span className="handle" style={{left:37, top:-5}}/>
+    </div>);
+  if (n.type === "branch") {
+    const { BR_HEADER, BR_PAD, BR_ROW, DEF_ROW } = n.data;
+    const shown = CONDS.slice(0,3).map(condText).join(" · ");
+    return (<div className={"gnode gbranch"+(sel?" sel":"")} style={{...common, padding:0, overflow:"hidden"}} onMouseDown={(e)=>S.startDrag(e,n)}>
+      <div className="gh" style={{padding:"12px 12px 0", height:BR_HEADER}}><span className="gic branch"><Ic.branch size={15}/></span> Branch</div>
+      <div style={{padding:`${BR_PAD}px 12px 0`}}>
+        <div className="brow2" style={{height:BR_ROW}}>
+          <div className="bp"><span className="ppill branchp">Branch 1</span><span className="ppill any"><Ic.refresh size={9}/> Match Any · {NC}</span></div>
+          <div className="condbox sm">{shown} <span className="more">+{NC-3} more</span></div>
+        </div>
+        <div className="brow2" style={{height:DEF_ROW, justifyContent:"center"}}>
+          <div className="bp"><span className="ppill">Default</span><span className="gsub" style={{marginTop:0,marginLeft:6}}>No match → continue</span></div>
+        </div>
+      </div>
+      <span className="handle" style={{left:n.w-5, top:BR_HEADER+BR_PAD+BR_ROW/2-5, borderColor:"#9fc4f2"}}/>
+      <span className="handle" style={{left:n.w-5, top:BR_HEADER+BR_PAD+BR_ROW+DEF_ROW/2-5, borderColor:"#cdd5e0"}}/>
+      <span className="handle" style={{left:37, top:-5}}/>
+    </div>);
+  }
+  return null;
+}
+
+function GraphCanvas({ S, view, children }) {
+  const pan = useDragScroll();
+  return (
+    <div className="canvas" ref={pan}>
+      <div className="content" style={{ width:view.contentW, height:view.contentH }}>
+        <svg className="edges" width={view.contentW} height={view.contentH}>
+          {view.edges.map((e,i)=>{
+            const d = e.rightExit ? `M${e.from.x},${e.from.y} H${e.from.x+34} V${e.to.y} H${e.to.x}` : edgePath(e.from,e.to);
+            const sx = e.from.x, sy = e.from.y;
+            return (<g key={i}>
+              <path d={d} fill="none" stroke={EDGE_COLOR[e.kind]} strokeWidth={2} strokeDasharray={e.kind==="default"?"5 4":"none"} />
+              <circle cx={sx} cy={sy} r={3} fill="#fff" stroke={EDGE_COLOR[e.kind]} strokeWidth={2}/>
+            </g>);
+          })}
+        </svg>
+        {view.labels.map((l,i)=>(<div key={i} className={"elabel "+l.kind} style={{left:l.x, top:l.y}}>{l.text}</div>))}
+        {view.nodes.map((n)=>(<NodeCard key={n.id} n={n} S={S} />))}
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/* ===== reusable condition list (same conditions in IF/Else and Branch) ===== */
+function CondList({ collapsedFrom }) {
+  const [open, setOpen] = useState(0);
+  return (<>
+    {CONDS.map((c, i) => {
+      const isOpen = open === i;
+      return (
+        <div className="condwrap" key={i}>
+          <div className="condhd" onClick={()=>setOpen(isOpen?-1:i)}>
+            {isOpen ? <Ic.chevD size={14} color="#94a3b8"/> : <Ic.chevR size={14} color="#94a3b8"/>}
+            Condition {i+1}
+            {!isOpen && <span style={{marginLeft:"auto",fontSize:11.5,fontWeight:600,color:"var(--muted)"}}>{condText(c)}</span>}
+          </div>
+          {isOpen && (<>
+            <div className="condgrid"><div className="sel filled">{c[0]} <Ic.chevD size={14}/></div><div className="sel filled">{c[1]} <Ic.chevD size={14}/></div></div>
+            <div className="valrow"><span className="dd">Direct <Ic.chevD size={12}/></span><div className="valbox">{c[2]}</div></div>
+          </>)}
+        </div>
+      );
+    })}
+  </>);
+}
+
+/* ===== side popover — IF/Else group (the configured conditions) ===== */
+function GroupPopover({ S }) {
+  return (
+    <div className="sp">
+      <div className="sp-top">
+        <div style={{flex:1}}/>
+        <button className="sp-act" title="Swap node"><Ic.swap size={15}/></button>
+        <button className="sp-act danger"><Ic.trash size={15}/></button>
+        <button className="sp-act"><Ic.dots size={15}/></button>
+        <button className="sp-act" onClick={()=>S.select(null)}><Ic.close size={15}/></button>
+      </div>
+      <div className="sp-scroll">
+        <div className="sp-title"><span className="gic ifelse"><Ic.ifelse size={16}/></span><h2>IF / Else</h2></div>
+        <div className="sp-blurb">Split the workflow into two paths — run a step when the condition is true. <a>Doc <Ic.ext/></a></div>
+
+        {!S.optDismissed && (
+          <div className="optpop">
+            <button className="opx" onClick={S.dismissOpt} title="Dismiss"><Ic.close size={14}/></button>
+            <div className="oph"><span className="opic"><Ic.spark size={16}/></span>
+              <div><div className="oplbl">Optimize · optional</div><div className="optitle">Convert {NC} IF/Else → 1 Branch</div></div></div>
+            <div className="opsub">All {NC} conditions below lead to the same action. A Branch holds them in one node — same output, easier to manage.</div>
+            <button className="btn btn-pri btn-sm" onClick={S.openPreview}><Ic.branch size={13}/> See preview</button>
+          </div>
+        )}
+
+        <div className="field"><label className="lbl2">Title <span className="req">*</span></label><input className="inp" defaultValue="Detect major incident" placeholder="Title"/></div>
+        <div className="field"><label className="lbl2">Select Source Node <span className="req">*</span></label>
+          <div className="sel filled">Incident <Ic.chevD size={15}/></div>
+          <p className="hint">The previous step/node whose data you want to use in this node</p></div>
+
+        <span className="checkif">Check IF</span>
+        <div className="matchrow">Match <span className="seg-mini">Any <Ic.refresh size={11}/></span> of these {NC} configured conditions</div>
+        <CondList/>
+        <span className="addc"><Ic.plus size={13}/> Add Condition</span>
+
+        <div className="field" style={{marginTop:16}}><label className="lbl2">Is True → Next node</label><div className="sel filled"><span style={{display:"inline-flex",alignItems:"center",gap:7}}><Ic.flag size={14} color="var(--green)"/> {ACTION}</span> <Ic.chevD size={15}/></div></div>
+        <div className="field"><label className="lbl2">Else → Next node</label><div className="sel filled">Continue workflow <Ic.chevD size={15}/></div></div>
+      </div>
+      <div className="sp-foot">
+        <button className="btn btn-ghost btn-sm">Reset</button>
+        <button className="btn btn-pri btn-sm">Save</button>
+      </div>
+    </div>
+  );
+}
+
+/* ===== side popover — Branch (same conditions, single path) ===== */
+function BranchPopover({ S }) {
+  return (
+    <div className="sp">
+      <div className="sp-top">
+        <button className="gobk" style={{flex:1,justifyContent:"flex-start"}}><Ic.chevL size={14}/> Go to IF/Else Node</button>
+        <button className="sp-act" title="Swap node"><Ic.swap size={15}/></button>
+        <button className="sp-act danger"><Ic.trash size={15}/></button>
+        <button className="sp-act"><Ic.dots size={15}/></button>
+        <button className="sp-act" onClick={()=>S.select(null)}><Ic.close size={15}/></button>
+      </div>
+      <div className="sp-scroll">
+        <div className="sp-title"><span className="gic branch"><Ic.branch size={16}/></span><h2>Branch</h2></div>
+        <div className="sp-blurb">Send the workflow down different paths depending on what the value is — like sorting tickets into the right team. <a>Doc <Ic.ext/></a></div>
+
+        <div className="swapnote green"><Ic.checkC size={16} style={{flex:"0 0 16px",marginTop:1}}/>
+          <div><b>Converted from {NC} IF/Else.</b> All {NC} conditions now live in a single Branch path (Match Any). Same output — reversible anytime.</div></div>
+
+        <div className="field"><label className="lbl2">Title <span className="req">*</span></label><input className="inp" defaultValue="Detect major incident" placeholder="Title"/></div>
+        <div className="field"><label className="lbl2">Description <span className="req">*</span></label><textarea className="inp" rows="2" defaultValue="Flag the incident as major when any major-incident signal is met." placeholder="Description"/></div>
+        <div className="field"><label className="lbl2">Select Source Node <span className="req">*</span></label><div className="sel filled">Incident <Ic.chevD size={15}/></div>
+          <p className="hint">The previous step/node whose data you want to use in this node</p></div>
+
+        <div className="bcard">
+          <div className="bcard-h"><span className="bn on">Branch 1</span>
+            <span style={{flex:1,fontSize:12,fontWeight:600,color:"var(--muted)"}}>→ {ACTION}</span>
+            <button className="sp-act" style={{width:26,height:26}}><Ic.copy size={13}/></button>
+            <button className="sp-act danger" style={{width:26,height:26}}><Ic.trash size={13}/></button>
+          </div>
+          <div className="field" style={{marginBottom:11}}><label className="lbl2">Name <span className="req">*</span></label><input className="inp" defaultValue="Major incident" placeholder="Name"/></div>
+          <div className="field" style={{marginBottom:11}}><label className="lbl2">Select Type <span className="req">*</span></label><div className="sel filled">Condition <Ic.chevD size={15}/></div></div>
+          <span className="checkif">Check IF</span>
+          <div className="matchrow">Match <span className="seg-mini">Any <Ic.refresh size={11}/></span> of this following condition</div>
+          <CondList/>
+          <span className="addc"><Ic.plus size={13}/> Add Condition</span>
+          <div style={{marginTop:12}}><button className="addgrp"><Ic.plus size={13}/> Add Condition Group</button></div>
+        </div>
+
+        <button className="addbranch"><Ic.plus size={14}/> Add Branch</button>
+
+        <div className="bcard def">
+          <div className="bcard-h"><span className="bn">Default</span></div>
+          <label className="lbl2">Name <span className="req">*</span></label>
+          <input className="inp" defaultValue="Default Branch"/>
+          <p className="hint">Executed when no branch conditions are met</p>
+        </div>
+
+        <div className="nns">
+          <h3>Next Node Selection</h3>
+          <p className="sub">Pick the next step in your workflow</p>
+          <div className="nns-row">
+            <div className="nns-branch"><span className="bic"><Ic.branch size={13}/></span> Branch 1</div>
+            <button className="addstep"><Ic.addbox size={16} color="#94a3b8"/> Add step when condition is met</button>
+          </div>
+          <div className="nns-row">
+            <div className="nns-branch"><span className="bic def"><Ic.branch size={13}/></span> Default</div>
+            <button className="addstep"><Ic.addbox size={16} color="#94a3b8"/> Add step when no condition is met</button>
+          </div>
+        </div>
+      </div>
+      <div className="sp-foot">
+        <button className="btn btn-ghost btn-sm">Reset</button>
+        <button className="btn btn-pri btn-sm">Save</button>
+      </div>
+    </div>
+  );
+}
+
+/* ===== preview modal (no mapping, single branch single path) ===== */
+function MiniBefore() {
+  return (<div className="mini-stack">
+    {CONDS.map((c, i) => (
+      <React.Fragment key={i}>
+        <div className="mini-if">
+          <div className="t"><Ic.ifelse size={12} color="var(--orange)"/> IF {condText(c)}</div>
+          <div className="s"><Ic.flag size={10} color="var(--green)"/> Is True → {ACTION}</div>
+        </div>
+        {i < NC-1 && <div className="mini-conn"/>}
+      </React.Fragment>
+    ))}
+  </div>);
+}
+function MiniAfter() {
+  return (<div className="mini-branch">
+    <div className="mini-bh"><Ic.branch size={14} color="var(--orange)"/> Branch · 1 path + Default</div>
+    <div className="mini-path">
+      <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+        <span className="ppill branchp">Branch 1</span>
+        <span className="ppill any"><Ic.refresh size={9}/> Match Any · {NC}</span>
+        <span style={{fontSize:10.5,color:"var(--muted)",fontWeight:700}}>→ {ACTION}</span>
+      </div>
+      <div className="mini-cl">
+        {CONDS.map((c, i) => (<div className="mini-cond" key={i}>{i>0 && <span className="or">OR</span>}{condText(c)}</div>))}
+      </div>
+    </div>
+    <div className="mini-path def"><span className="ppill">Default</span> <span style={{fontSize:10.5,color:"var(--muted)",fontWeight:700,marginLeft:6}}>No match → continue</span></div>
+  </div>);
+}
+function PreviewModal({ S, onClose }) {
+  return (<>
+    <div className="scrim fade-in" onClick={onClose}/>
+    <div className="modal-wrap pop-in">
+      <div className="modal">
+        <div className="modal-head">
+          <span className="pi"><Ic.branch size={17}/></span>
+          <div style={{flex:1}}>
+            <h2 style={{fontSize:16,fontWeight:800,color:"#1c2533",margin:0}}>Convert {NC} IF/Else → 1 Branch</h2>
+            <div style={{fontSize:12,color:"var(--muted)",marginTop:1}}>All {NC} conditions move into a single Branch path (Match Any). Same output, one node.</div>
+          </div>
+          <button className="sp-act" onClick={onClose}><Ic.close size={17}/></button>
+        </div>
+        <div className="modal-body">
+          <div className="pvcols">
+            <div className="pvcol">
+              <div className="pvhd"><span className="pn before">{NC}</span> Before — stacked IF / Else</div>
+              <div className="pvbox"><MiniBefore/></div>
+            </div>
+            <div className="pvarrow"><span className="circle"><Ic.arrow size={17}/></span></div>
+            <div className="pvcol">
+              <div className="pvhd"><span className="pn after">1</span> After — single Branch <span style={{color:"var(--faint)",fontWeight:700}}>· 1 path + Default</span></div>
+              <div className="pvbox"><MiniAfter/></div>
+            </div>
+          </div>
+        </div>
+        <div className="modal-foot">
+          <span style={{fontSize:12,color:"var(--muted)",display:"flex",alignItems:"center",gap:7}}><Ic.info size={14} color="#7c8aa0"/> Non-destructive — you can undo this anytime.</span>
+          <div style={{display:"flex",gap:10}}>
+            <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
+            <button className="btn btn-pri" onClick={()=>{ S.apply(); onClose(); }}><Ic.branch size={14}/> Convert to Branch</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </>);
+}
+
+/* ===== app ===== */
+function App() {
+  const [converted, setConverted] = useState(false);
+  const [selected, setSelected] = useState("group");  // side drawer open by default
+  const [preview, setPreview] = useState(false);
+  const [optDismissed, setOptDismissed] = useState(false);
+  const [toast, setToast] = useState(null);
+  const [pos, setPos] = useState({});                 // per-node position overrides (dragging)
+
+  useEffect(()=>{ if(!toast) return; const t=setTimeout(()=>setToast(null), 4600); return ()=>clearTimeout(t); }, [toast]);
+
+  // drag a node freely; a clean click (no movement) opens its config panel
+  const startDrag = (e, n) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    const sx=e.clientX, sy=e.clientY, bx=n.x, by=n.y;
+    let moved=false;
+    document.body.style.userSelect="none";
+    const onMove=(ev)=>{
+      const k=window.__scale||1;
+      const dx=(ev.clientX-sx)/k, dy=(ev.clientY-sy)/k;
+      if(!moved && Math.abs(dx)+Math.abs(dy)>3) moved=true;
+      if(moved) setPos(p=>({...p, [n.id]:{ x:Math.max(8,bx+dx), y:Math.max(8,by+dy) }}));
+    };
+    const onUp=()=>{
+      window.removeEventListener("mousemove",onMove); window.removeEventListener("mouseup",onUp);
+      document.body.style.userSelect="";
+      if(!moved){ if(n.type==="ifelse") setSelected("group"); else if(n.type==="branch") setSelected("branch"); }
+    };
+    window.addEventListener("mousemove",onMove); window.addEventListener("mouseup",onUp);
+  };
+
+  const openGroup = () => setSelected("group");
+  const openPreview = () => setPreview(true);
+  const apply = () => { setConverted(true); setSelected("branch");
+    setToast({ kind:"ok", msg:`Converted ${NC} IF/Else → 1 Branch · all conditions in one path · non-destructive`, undo:true }); };
+  const undo = () => { setConverted(false); setSelected("group"); setOptDismissed(false);
+    setToast({ kind:"info", msg:"Reverted — your IF/Else steps are back, unchanged" }); };
+  const dismissOpt = () => setOptDismissed(true);
+  const showOpt = () => { setOptDismissed(false); setSelected("group"); };
+
+  const S = { converted, selected, select:setSelected, openGroup, openPreview, apply, undo, optDismissed, dismissOpt, startDrag };
+  const view = converted ? buildAfter(pos) : buildBefore(pos);
+
+  return (
+    <div style={{flex:1,display:"flex",flexDirection:"column"}}>
+      <NavBar/>
+      <div className="body">
+        <Rail/>
+        <div className="work-main">
+          <div className="head">
+            <button className="back"><Ic.chevL size={18}/></button>
+            <h1>Create Workflow</h1>
+            <span style={{fontSize:12.5,color:"var(--faint)",fontWeight:700}}>· Workflow 16</span>
+            <div className="grow"/>
+            {converted
+              ? <button className="chip chip-green" onClick={undo} title="Undo the conversion"><Ic.undo size={14}/> Optimized · Undo</button>
+              : (optDismissed
+                  ? <button className="chip chip-blue" onClick={showOpt}><Ic.spark size={14}/> Optimize available</button>
+                  : null)}
+            <button className="btn btn-ghost">Save As Draft</button>
+            <button className="btn btn-pri"><Ic.share size={14}/> Publish</button>
+          </div>
+          <div className="work">
+            <GraphCanvas S={S} view={view}>
+              {!converted && !optDismissed && view.lasso && (
+                <div className="lasso" style={{ left:view.lasso.x, top:view.lasso.y, width:view.lasso.w, height:view.lasso.h }}>
+                  <span className="lasso-badge" onClick={openGroup}><Ic.ifelse size={11}/> Group · {NC} IF/Else conditions</span>
+                </div>
+              )}
+            </GraphCanvas>
+
+            {selected && (selected==="branch" ? <BranchPopover S={S}/> : <GroupPopover S={S}/>)}
+
+            {!selected && (
+              <button className="sp-reopen" onClick={()=>setSelected(converted?"branch":"group")} title="Open configuration panel">
+                <span className="tic">{converted ? <Ic.branch size={16}/> : <Ic.ifelse size={16}/>}</span>
+                <Ic.chevL size={16}/>
+                <span className="lab">{converted ? "Branch" : "IF / Else"}</span>
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {preview && <PreviewModal S={S} onClose={()=>setPreview(false)} />}
+      {toast && (
+        <div className="toast">
+          <span className={"ck"+(toast.kind==="info"?" info":"")}>{toast.kind==="info"?<Ic.undo size={12} color="#fff"/>:<Ic.check size={12} color="#fff"/>}</span>
+          {toast.msg}
+          {toast.undo && <button className="undo" onClick={undo}><Ic.undo size={13}/> Undo</button>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ===== chrome + mount ===== */
+function Chrome(){
+  return (<>
+    <div className="ch-brand"><span className="dot"/>Motadata ServiceOps<small>· IF/Else → Branch</small></div>
+    <span className="ch-tag"><Ic.spark size={11}/> UC1 · Live Inline · BUILD v3 (drawer scroll)</span>
+    <span className="ch-cap">View configured conditions → <b>preview</b> → convert → side-popover <b>swaps IF/Else → Branch</b> (one path, all conditions) → Undo.</span>
+    <div className="ch-spacer"/>
+    <button className="ch-replay" onClick={()=>location.reload()}><Ic.undo size={13}/> Replay</button>
+  </>);
+}
+function fit(){
+  const stage=document.getElementById("stage"), node=document.getElementById("fit");
+  if(!stage||!node) return;
+  const k=Math.min(stage.clientWidth/1380, stage.clientHeight/884, 1.1);
+  node.style.transform=`scale(${k})`;
+  window.__scale=k;
+}
+window.addEventListener("resize", fit);
+new ResizeObserver(fit).observe(document.getElementById("stage"));
+fit();
+ReactDOM.createRoot(document.getElementById("chrome")).render(<Chrome/>);
+ReactDOM.createRoot(document.getElementById("app")).render(<App/>);
+setTimeout(fit,30); setTimeout(fit,200);
+  </script>
+</body>
+</html>

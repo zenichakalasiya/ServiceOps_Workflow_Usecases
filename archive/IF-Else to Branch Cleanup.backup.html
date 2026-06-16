@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>IF/Else → Branch Cleanup · 3 Options · Motadata ServiceOps</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:ital,opsz,wght@0,6..12,400;0,6..12,500;0,6..12,600;0,6..12,700;0,6..12,800&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --blue:#2680eb; --blue-ink:#1b6fd6; --blue-700:#155bb5;
+    --blue-50:#eaf2fd; --blue-100:#d8e8fb; --blue-200:#bcd8f7;
+    --ink:#1f2a37; --ink-2:#34404e; --muted:#64748b; --faint:#94a3b8;
+    --line:#e7eaef; --line-2:#eef1f5; --line-strong:#dde2ea;
+    --canvas:#fcfcfd; --dot:#d9dee6; --rail:#fbfcfe; --paper:#ffffff;
+    --green:#15924f; --green-bg:#e6f6ec; --green-line:#bfe6cd; --green-ink:#0f7a40;
+    --amber:#c97d12; --amber-bg:#fbf0d8; --amber-line:#f0dcae; --amber-ink:#9a6206;
+    --red:#e5484d; --red-bg:#fdecec; --red-line:#f5c9cb; --red-ink:#c0322f;
+    --purple:#7c5cf0; --purple-bg:#f0ecfd; --purple-line:#ddd2fa;
+    --chrome-line:#283342; --chrome-muted:#8b97a6;
+    --r-sm:6px; --r:8px; --r-lg:12px; --r-xl:16px;
+    --shadow-card:0 1px 2px rgba(20,30,45,.04), 0 1px 1px rgba(20,30,45,.03);
+    --shadow-pop:0 12px 34px rgba(17,27,43,.16), 0 3px 10px rgba(17,27,43,.08);
+    --shadow-panel:-12px 0 34px rgba(17,27,43,.10);
+    --font:"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{font-family:var(--font); background:#0a0f15; color:var(--ink);
+    -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; overflow:hidden;}
+  button{font-family:inherit; cursor:pointer; border:none; background:none; color:inherit;}
+  input,textarea,select{font-family:inherit;}
+  ::-webkit-scrollbar{width:10px;height:10px;}
+  ::-webkit-scrollbar-thumb{background:#cbd3de; border-radius:20px; border:3px solid transparent; background-clip:content-box;}
+  ::-webkit-scrollbar-thumb:hover{background:#b3bdcb; background-clip:content-box;}
+
+  /* ===== Review chrome ===== */
+  #chrome{position:fixed; top:0; left:0; right:0; height:76px; z-index:50;
+    background:linear-gradient(180deg,#121a24,#0d131b); border-bottom:1px solid var(--chrome-line);
+    display:flex; flex-direction:column; justify-content:center; padding:0 22px; gap:9px;}
+  .ch-row{display:flex; align-items:center; gap:16px;}
+  .ch-brand{display:flex; align-items:center; gap:10px; color:#fff; font-weight:800; font-size:13.5px; letter-spacing:.2px; white-space:nowrap;}
+  .ch-brand .dot{width:9px;height:9px;border-radius:50%;background:var(--blue); box-shadow:0 0 0 4px rgba(38,128,235,.18);}
+  .ch-brand small{color:var(--chrome-muted); font-weight:600; letter-spacing:.3px; text-transform:uppercase; font-size:10.5px;}
+  .ch-tabs{display:flex; gap:4px; background:#0a0f16; border:1px solid var(--chrome-line); padding:4px; border-radius:11px;}
+  .ch-tab{display:flex; align-items:center; gap:8px; padding:7px 13px; border-radius:8px; color:var(--chrome-muted);
+    font-weight:700; font-size:12.5px; transition:.15s; white-space:nowrap;}
+  .ch-tab .n{display:inline-flex; align-items:center; justify-content:center; width:18px;height:18px; border-radius:6px;
+    background:#1d2735; font-size:11px; font-weight:800; color:#aab6c6;}
+  .ch-tab:hover{color:#d7dee7;}
+  .ch-tab.on{background:var(--blue); color:#fff;}
+  .ch-tab.on .n{background:rgba(255,255,255,.22); color:#fff;}
+  .ch-spacer{flex:1;}
+  .ch-replay{display:flex; align-items:center; gap:7px; padding:8px 13px; border-radius:9px; color:#cfd7e1;
+    border:1px solid var(--chrome-line); background:#10171f; font-weight:700; font-size:12px; transition:.15s;}
+  .ch-replay:hover{background:#16202b; color:#fff;}
+  .ch-cap{display:flex; align-items:baseline; gap:10px; color:var(--chrome-muted); font-size:12.5px; padding-left:2px; white-space:nowrap; overflow:hidden;}
+  .ch-cap b{color:#e7ecf2; font-weight:700;}
+  .ch-cap .tag{color:var(--blue); font-weight:800; letter-spacing:.2px;}
+
+  /* ===== Stage ===== */
+  #stage{position:fixed; top:76px; left:0; right:0; bottom:0; overflow:hidden;
+    background:radial-gradient(120% 120% at 50% 0%, #161d27 0%, #0a0f15 70%);
+    display:flex; align-items:center; justify-content:center;}
+  #fit{position:absolute; transform-origin:center center;}
+  #app{width:1320px; height:864px; background:var(--paper); border-radius:14px; overflow:hidden; position:relative;
+    box-shadow:0 30px 80px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.04); display:flex; flex-direction:column;}
+
+  /* ===== nav / rail ===== */
+  .nav{height:54px; flex:0 0 54px; background:#fff; border-bottom:1px solid var(--line);
+    display:flex; align-items:center; padding:0 18px; gap:14px; position:relative; z-index:5;}
+  .logo{display:flex; align-items:center; gap:9px;}
+  .logo .wm{font-weight:800; font-size:20px; letter-spacing:-.5px; color:#1c2533;}
+  .logo .wm i{font-style:normal; color:#2680eb;}
+  .nav .grow{flex:1;}
+  .nav-ic{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#64748b;}
+  .nav-ic:hover{background:#f2f5f9;}
+  .nav-plus{width:36px;height:36px;border-radius:9px;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(38,128,235,.32);}
+  .nav-av{width:34px;height:34px;border-radius:9px;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;letter-spacing:.4px;}
+  .body{flex:1; display:flex; min-height:0;}
+  .rail{width:58px; flex:0 0 58px; background:var(--rail); border-right:1px solid var(--line);
+    display:flex; flex-direction:column; align-items:center; padding:14px 0 12px;}
+  .rail .ic{width:38px;height:38px;border-radius:9px;display:flex;align-items:center;justify-content:center;color:#7a879a;margin-bottom:5px;transition:.12s;}
+  .rail .ic:hover{background:#eef2f8; color:#445}
+  .rail .ic.on{color:var(--blue); background:#e8f1fd;}
+  .rail .grow{flex:1;}
+  .rail .itsm{writing-mode:vertical-rl; transform:rotate(180deg); font-weight:800; color:var(--blue); letter-spacing:2px; font-size:12px; margin-bottom:12px;}
+  .work-main{flex:1; display:flex; flex-direction:column; min-width:0; position:relative;}
+  .head{height:58px; flex:0 0 58px; background:#fff; border-bottom:1px solid var(--line);
+    display:flex; align-items:center; padding:0 18px; gap:12px; position:relative; z-index:6;}
+  .head .back{width:34px;height:34px;border-radius:8px;border:1px solid var(--line-strong);display:flex;align-items:center;justify-content:center;color:#64748b;}
+  .head h1{font-size:18px; font-weight:800; color:#1c2533; margin:0; letter-spacing:-.2px; white-space:nowrap; flex:0 0 auto;}
+  .head .grow{flex:1;}
+
+  /* ===== canvas ===== */
+  .canvas{flex:1; position:relative; overflow-y:auto; overflow-x:hidden;
+    background-color:var(--canvas);
+    background-image:radial-gradient(var(--dot) 1.4px, transparent 1.4px);
+    background-size:22px 22px; background-position:-1px -1px;}
+  .flow-col{width:360px; margin:0 auto; padding:34px 0 90px; display:flex; flex-direction:column; align-items:center;}
+
+  .node-pill{display:inline-flex; align-items:center; gap:6px; padding:4px 11px 4px 8px; border-radius:999px; font-size:11px; font-weight:800; margin-bottom:7px; letter-spacing:.2px;}
+  .tnode{width:300px;background:#fff;border:1.5px solid var(--blue);border-radius:13px;padding:12px 14px;box-shadow:0 6px 18px rgba(38,128,235,.10),var(--shadow-card);}
+  .tnode .top{display:flex;align-items:center;gap:11px;}
+  .nic{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex:0 0 32px;}
+  .ntitle{font-weight:700;font-size:14px;color:var(--ink);}
+  .nsub{font-size:12px;color:var(--muted);margin-top:2px;}
+  .conn{width:1.5px;background:var(--line-strong);}
+
+  /* if ladder card */
+  .ifcard{position:relative;width:100%;background:#fff;border:1px solid var(--line);border-radius:11px;padding:10px 12px;transition:.12s;}
+  .ifcard.hot{border-color:var(--blue);box-shadow:0 0 0 3px rgba(38,128,235,.14);}
+  .ifcard.dim{opacity:.4;}
+  .mini-pill{display:inline-flex;align-items:center;gap:5px;font-size:9.5px;font-weight:800;letter-spacing:.3px;padding:2px 8px;border-radius:999px;background:var(--purple-bg);color:#5a40c0;margin-bottom:6px;}
+  .mini-pill.keep{background:#eef1f6;color:#5d6470;}
+  .ifrow{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink);font-weight:700;}
+  .ifrow .cat{font-weight:800;}
+  .ifact{font-size:11.5px;color:var(--muted);margin-top:4px;padding-left:1px;display:flex;align-items:center;gap:5px;}
+
+  /* branch */
+  .bnode{width:300px;background:#fff;border:1.5px solid var(--blue);border-radius:13px;padding:12px 14px;box-shadow:0 6px 18px rgba(38,128,235,.10),var(--shadow-card);}
+  .paths{width:100%;border-left:2px dashed var(--blue-200);margin-left:22px;padding-left:18px;margin-top:10px;}
+  .bpath{position:relative;display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:9px;padding:8px 11px;margin-bottom:7px;font-size:12px;color:var(--ink-2);transition:.12s;}
+  .bpath::before{content:"";position:absolute;left:-20px;top:50%;width:16px;height:2px;background:var(--blue-200);}
+  .bpath .pcat{font-weight:800;color:var(--ink);}
+  .bpath .pact{color:var(--muted);}
+  .bpath .arrowi{color:var(--faint);flex:0 0 auto;}
+  .bpath.hot{border-color:var(--blue);box-shadow:0 0 0 3px rgba(38,128,235,.14);}
+  .bpath.def{border-style:dashed;background:#fafbfc;color:var(--muted);}
+
+  /* buttons */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border-radius:8px;font-weight:700;font-size:13px;padding:9px 15px;transition:.13s;white-space:nowrap;}
+  .btn-pri{background:var(--blue);color:#fff;box-shadow:0 2px 6px rgba(38,128,235,.28);}
+  .btn-pri:hover{background:var(--blue-ink);}
+  .btn-ghost{background:#fff;border:1px solid var(--line-strong);color:var(--ink-2);}
+  .btn-ghost:hover{background:#f6f8fb;border-color:#cfd6e0;}
+  .btn-soft{background:var(--blue-50);color:var(--blue-700);}
+  .btn-soft:hover{background:var(--blue-100);}
+  .btn-sm{padding:6px 11px;font-size:12px;border-radius:7px;}
+  .link{color:var(--blue);font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;}
+  .link:hover{text-decoration:underline;}
+
+  /* chips */
+  .chip{display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:6px 13px 6px 11px;font-weight:800;font-size:12.5px;border:1px solid;transition:.13s;}
+  .chip:hover{transform:translateY(-1px);}
+  .chip-blue{background:var(--blue-50);color:var(--blue-700);border-color:var(--blue-100);}
+  .chip-green{background:var(--green-bg);color:var(--green-ink);border-color:var(--green-line);}
+
+  /* suggestion banner */
+  .sugg{display:flex;align-items:center;gap:13px;background:#fff;border:1px solid var(--blue-200);border-radius:13px;padding:11px 12px 11px 14px;box-shadow:var(--shadow-pop);max-width:580px;}
+  .sugg .si{width:36px;height:36px;border-radius:10px;background:var(--blue-50);color:var(--blue);display:flex;align-items:center;justify-content:center;flex:0 0 36px;}
+  .sugg .lbl{font-size:9.5px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--blue-700);}
+  .sugg .stxt{font-size:12.5px;color:var(--ink-2);line-height:1.4;margin-top:2px;}
+  .sugg .stxt b{color:#1c2533;font-weight:800;}
+
+  /* scope control */
+  .scope{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+  .seg{display:flex;background:#eef1f6;border-radius:9px;padding:3px;gap:3px;}
+  .seg button{padding:7px 13px;border-radius:7px;font-weight:700;font-size:12px;color:#64748b;}
+  .seg button.on{background:#fff;color:var(--blue-700);box-shadow:var(--shadow-card);}
+  .rng{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted);font-weight:700;}
+  .rng select{border:1px solid var(--line-strong);border-radius:7px;padding:5px 8px;font-size:12px;font-weight:700;color:var(--ink);background:#fff;}
+
+  /* preview columns */
+  .pvcols{display:flex;align-items:stretch;gap:0;}
+  .pvcol{flex:1;min-width:0;display:flex;flex-direction:column;}
+  .pvhd{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800;color:var(--ink-2);margin-bottom:9px;}
+  .pvhd .pn{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 7px;border-radius:999px;font-size:11px;font-weight:800;}
+  .pvhd .pn.before{background:var(--purple-bg);color:#5a40c0;}
+  .pvhd .pn.after{background:var(--blue-50);color:var(--blue-700);}
+  .pvbox{border:1px solid var(--line);border-radius:12px;background:#fcfdff;
+    background-image:radial-gradient(#e2e8f2 1.2px,transparent 1.2px);background-size:16px 16px;
+    padding:14px;overflow-y:auto;}
+  .pvarrow{flex:0 0 56px;display:flex;align-items:center;justify-content:center;color:var(--blue);}
+  .pvarrow .circle{width:36px;height:36px;border-radius:50%;background:var(--blue-50);display:flex;align-items:center;justify-content:center;}
+
+  /* mapping table */
+  .mapwrap{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff;}
+  .maphd{display:flex;align-items:center;gap:9px;padding:11px 14px;border-bottom:1px solid var(--line-2);font-size:12px;font-weight:800;color:#1c2533;cursor:pointer;}
+  .mapscroll{overflow-y:auto;}
+  .mtable{width:100%;border-collapse:collapse;font-size:12px;}
+  .mtable th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--faint);font-weight:800;padding:8px 12px;border-bottom:1px solid var(--line);position:sticky;top:0;background:#fff;z-index:1;}
+  .mtable td{padding:8px 12px;border-bottom:1px solid var(--line-2);color:var(--ink-2);vertical-align:middle;}
+  .mtable tr:last-child td{border-bottom:none;}
+  .mtable tr.hot td{background:var(--blue-50);}
+  .mtable tr.keeprow td{color:var(--faint);}
+  .mtable tr.defrow td{background:#fafbfc;}
+  .cat-cell{font-weight:800;color:var(--ink);}
+  .arrowcell{color:var(--faint);text-align:center;width:30px;}
+  .tagm{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:800;border-radius:6px;padding:2px 8px;border:1px solid;}
+  .tagm.conv{color:var(--green-ink);background:var(--green-bg);border-color:var(--green-line);}
+  .tagm.keep{color:#5d6470;background:#eef1f6;border-color:var(--line);}
+
+  /* applied banner */
+  .applied{display:flex;align-items:center;gap:10px;background:var(--green-bg);border:1px solid var(--green-line);border-radius:11px;padding:11px 13px;color:var(--green-ink);font-size:12.5px;font-weight:700;}
+
+  /* drawer / panels */
+  .scrim{position:absolute;inset:0;z-index:40;background:rgba(15,23,35,.34);backdrop-filter:blur(1.5px);}
+  .scrim.soft{background:rgba(15,23,35,.22);}
+  .drawer{position:absolute;top:0;right:0;bottom:0;width:404px;background:#fff;z-index:38;box-shadow:var(--shadow-panel);display:flex;flex-direction:column;}
+  .phead{display:flex;align-items:center;gap:11px;padding:15px 18px;border-bottom:1px solid var(--line-2);}
+  .phead .pi{width:32px;height:32px;border-radius:9px;background:var(--blue-50);color:var(--blue);display:flex;align-items:center;justify-content:center;flex:0 0 32px;}
+  .phead h2{font-size:15.5px;font-weight:800;color:#1c2533;margin:0;}
+  .pscroll{flex:1;overflow-y:auto;padding:16px 18px;}
+  .sec-label{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--faint);margin:16px 0 9px;}
+
+  .optitem{border:1px solid var(--blue-200);border-radius:12px;background:linear-gradient(180deg,#fff,#fafcff);padding:13px;}
+  .optitem .ot{display:flex;align-items:center;gap:9px;margin-bottom:7px;}
+  .optitem .oic{width:30px;height:30px;border-radius:8px;background:var(--blue-50);color:var(--blue);display:flex;align-items:center;justify-content:center;flex:0 0 30px;}
+
+  .modal-wrap{position:absolute;inset:0;z-index:42;display:flex;align-items:center;justify-content:center;padding:24px;}
+  .modal{background:#fff;border-radius:16px;box-shadow:var(--shadow-pop);display:flex;flex-direction:column;overflow:hidden;}
+  .modal-head{padding:16px 20px;border-bottom:1px solid var(--line-2);display:flex;align-items:center;gap:12px;}
+  .modal-body{padding:18px 20px;overflow-y:auto;}
+  .modal-foot{padding:13px 20px;border-top:1px solid var(--line-2);display:flex;align-items:center;justify-content:space-between;gap:10px;}
+
+  .reopen-cta{position:absolute;z-index:30;display:flex;align-items:center;gap:9px;background:#fff;border:1px solid var(--line-strong);border-radius:999px;padding:10px 16px 10px 13px;box-shadow:var(--shadow-pop);font-size:13px;font-weight:800;color:var(--ink-2);}
+  .reopen-cta:hover{border-color:var(--blue);color:var(--blue-700);}
+
+  /* dedicated optimize panel */
+  .opt-sub{flex:0 0 auto;background:#fff;border-bottom:1px solid var(--line);padding:13px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+  .opt-sub h2{font-size:16px;font-weight:800;color:#1c2533;margin:0;}
+
+  .toast{position:absolute;left:50%;top:16px;transform:translateX(-50%);z-index:80;
+    display:flex;align-items:center;gap:12px;background:#101a26;color:#fff;border-radius:11px;padding:11px 14px 11px 16px;
+    box-shadow:var(--shadow-pop);font-size:13px;font-weight:600;max-width:580px;}
+  .toast .ck{width:20px;height:20px;border-radius:50%;background:#19a259;display:flex;align-items:center;justify-content:center;flex:0 0 20px;}
+  .toast .ck.info{background:var(--blue);}
+  .toast .undo{border:1px solid #33414f;background:#1b2532;color:#fff;border-radius:7px;padding:5px 11px;font-weight:800;font-size:12px;display:flex;align-items:center;gap:5px;}
+  .toast .undo:hover{background:#243140;}
+
+  .fade-in{animation:fadeIn .2s ease both;}
+  .pop-in{animation:popIn .22s cubic-bezier(.2,.9,.3,1.2) both;}
+  .slide-in{animation:slideIn .26s cubic-bezier(.2,.8,.25,1) both;}
+  .rise{animation:rise .24s cubic-bezier(.2,.8,.25,1) both;}
+  @keyframes fadeIn{from{opacity:.4}to{opacity:1}}
+  @keyframes popIn{from{transform:scale(.975);opacity:.6}to{transform:scale(1);opacity:1}}
+  @keyframes slideIn{from{transform:translateX(34px)}to{transform:translateX(0)}}
+  @keyframes rise{from{transform:translateY(10px);opacity:.5}to{transform:translateY(0);opacity:1}}
+</style>
+</head>
+<body>
+  <div id="chrome"></div>
+  <div id="stage"><div id="fit"><div id="app"></div></div></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+
+  <script type="text/babel" data-presets="react">
+const { useState, useEffect, useReducer } = React;
+
+/* ===== Icons ===== */
+const I = (p) => {
+  const { d, fill, sw=1.7, vb="0 0 24 24", children, size=18, ...rest } = p;
+  return (<svg width={size} height={size} viewBox={vb} fill={fill||"none"} stroke={fill?"none":"currentColor"} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" {...rest}>{children||(d?<path d={d}/>:null)}</svg>);
+};
+const Ic = {
+  plus:(p)=><I {...p}><path d="M12 5v14M5 12h14"/></I>,
+  calendar:(p)=><I {...p}><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9h18M8 2.5v4M16 2.5v4"/></I>,
+  bell:(p)=><I {...p}><path d="M6 9a6 6 0 1112 0c0 5 2 6 2 6H4s2-1 2-6z"/><path d="M10.5 20a2 2 0 003 0"/></I>,
+  gear:(p)=><I {...p}><circle cx="12" cy="12" r="3.1"/><path d="M19.4 13.5a1.6 1.6 0 00.3 1.8 2 2 0 11-2.8 2.8 1.6 1.6 0 00-2.7.7 2 2 0 11-4 0 1.6 1.6 0 00-1-1.5 1.6 1.6 0 00-1.8.3 2 2 0 11-2.8-2.8 1.6 1.6 0 00.3-1.8 1.6 1.6 0 00-1.5-1 2 2 0 010-4 1.6 1.6 0 001.5-1 1.6 1.6 0 00-.3-1.8A2 2 0 116 3.4a1.6 1.6 0 001.8.3 1.6 1.6 0 001-1.5 2 2 0 014 0 1.6 1.6 0 001 1.5 1.6 1.6 0 001.8-.3 2 2 0 112.8 2.8 1.6 1.6 0 00-.3 1.8 1.6 1.6 0 001.5 1 2 2 0 010 4 1.6 1.6 0 00-1.5 1z"/></I>,
+  keyboard:(p)=><I {...p}><rect x="2.5" y="6" width="19" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></I>,
+  chevL:(p)=><I {...p}><path d="M15 6l-6 6 6 6"/></I>,
+  chevD:(p)=><I {...p}><path d="M6 9l6 6 6-6"/></I>,
+  close:(p)=><I {...p}><path d="M6 6l12 12M18 6L6 18"/></I>,
+  spark:(p)=><I {...p}><path d="M12 3l1.8 4.6L18 9l-4.2 1.4L12 15l-1.8-4.6L6 9l4.2-1.4z"/><path d="M5 16l.8 2 .8-2 .8 2M18 4l.6 1.5.6-1.5"/></I>,
+  check:(p)=><I {...p} sw={2.2}><path d="M5 12.5l4.2 4.2L19 7"/></I>,
+  checkC:(p)=><I {...p}><circle cx="12" cy="12" r="9"/><path d="M8.3 12.3l2.6 2.6L16 9.5"/></I>,
+  info:(p)=><I {...p}><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></I>,
+  warn:(p)=><I {...p}><path d="M10.3 3.8L2.6 17.5A2 2 0 004.3 20.5h15.4a2 2 0 001.7-3L13.7 3.8a2 2 0 00-3.4 0z"/><path d="M12 9.5v4M12 16.8h.01"/></I>,
+  arrow:(p)=><I {...p}><path d="M5 12h14M13 6l6 6-6 6"/></I>,
+  undo:(p)=><I {...p}><path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 110 10h-4"/></I>,
+  spark2:(p)=><I {...p}><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2 2M16.4 16.4l2 2M16.4 7.6l2-2M5.6 18.4l2-2"/></I>,
+  layers:(p)=><I {...p}><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></I>,
+  branch:(p)=><I {...p}><circle cx="6" cy="6" r="2.2"/><circle cx="18" cy="6" r="2.2"/><circle cx="6" cy="18" r="2.2"/><path d="M6 8.2v7.6M8.2 6H16M16 6a8 8 0 01-8 8"/></I>,
+  ifelse:(p)=><I {...p}><circle cx="6" cy="5" r="2.2"/><circle cx="6" cy="19" r="2.2"/><circle cx="18" cy="19" r="2.2"/><path d="M6 7.2v9.6M6 12h9a3 3 0 013 3v1.6"/></I>,
+  target:(p)=><I {...p}><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/></I>,
+  people:(p)=><I {...p}><circle cx="9" cy="8" r="3"/><path d="M3.5 19a5.5 5.5 0 0111 0M16 5.2a3 3 0 010 5.6M19.5 19a5.5 5.5 0 00-3-4.9"/></I>,
+  table:(p)=><I {...p}><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9.5h18M3 15h18M9 4.5v15"/></I>,
+  share:(p)=><I {...p}><path d="M12 15V4M8 8l4-4 4 4M5 14v4a2 2 0 002 2h10a2 2 0 002-2v-4"/></I>,
+  sync:(p)=><I {...p}><path d="M20 11a8 8 0 00-14-4.6L4 8M4 4v4h4"/><path d="M4 13a8 8 0 0014 4.6L20 16M20 20v-4h-4"/></I>,
+  ticket:(p)=><I {...p}><path d="M4 7.5A1.5 1.5 0 015.5 6h13A1.5 1.5 0 0120 7.5V10a2 2 0 000 4v2.5A1.5 1.5 0 0118.5 18h-13A1.5 1.5 0 014 16.5V14a2 2 0 000-4z"/><path d="M14 6v12"/></I>,
+  dashboard:(p)=><I {...p}><circle cx="12" cy="12" r="9"/><path d="M12 12l4-3"/></I>,
+  loop:(p)=><I {...p}><path d="M17 3l3 3-3 3"/><path d="M20 6H8a4 4 0 00-4 4M7 21l-3-3 3-3"/><path d="M4 18h12a4 4 0 004-4"/></I>,
+  monitor:(p)=><I {...p}><rect x="3" y="4.5" width="18" height="12" rx="2"/><path d="M8 20.5h8M12 16.5v4"/></I>,
+  box:(p)=><I {...p}><path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></I>,
+  sitemap:(p)=><I {...p}><rect x="9" y="3" width="6" height="5" rx="1.2"/><rect x="3" y="16" width="6" height="5" rx="1.2"/><rect x="15" y="16" width="6" height="5" rx="1.2"/><path d="M12 8v4M6 16v-2h12v2"/></I>,
+  bulb:(p)=><I {...p}><path d="M9 18h6M10 21h4M8.5 14a5 5 0 117 0c-.8.8-1.5 1.6-1.5 2.5h-4c0-.9-.7-1.7-1.5-2.5z"/></I>,
+  doc:(p)=><I {...p}><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 13h6M9 17h6"/></I>,
+  personck:(p)=><I {...p}><circle cx="10" cy="8" r="3"/><path d="M4 19a6 6 0 0110-4.5M16 18l1.5 1.5L21 16"/></I>,
+  checklist:(p)=><I {...p}><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6l1 1 1.5-2M4 12l1 1 1.5-2M4 18l1 1 1.5-2"/></I>,
+};
+const RAIL = ["dashboard","ticket","people","loop","share","monitor","gear","box","sitemap","bulb","doc","personck","checklist"];
+
+/* ===== Data ===== */
+const FIELD = "Category";
+const TRIGGER = { title:"Incident Created", sub:"Incident · Is Created" };
+const CATS = [
+  ["Network","Network Team"], ["Hardware","Desktop Support"], ["Software","Apps Team"],
+  ["Email","Messaging Team"], ["Account & Access","IAM Team"], ["VPN","Network Team"],
+  ["Printing","Desktop Support"], ["Database","DBA Team"], ["Security","SecOps"],
+  ["Telephony","Voice Team"], ["Web","Web Team"], ["Mobile","EUC Team"],
+  ["Storage","Infra Team"], ["Backup","Infra Team"], ["Cloud","Cloud Team"],
+  ["HR System","HR-IT"], ["Finance System","Finance-IT"], ["Facilities","Facilities Team"],
+];
+const N = CATS.length;
+const detLine = `You’ve built ${N} IF/Else steps that route on ${FIELD}. A Branch would do this in one node.`;
+
+/* ===== Shared state ===== */
+function useCleanup() {
+  const [converted, setConverted] = useState(false);
+  const [mode, setMode] = useState("all");       // 'all' | 'range'
+  const [from, setFrom] = useState(1);
+  const [to, setTo] = useState(N);
+  const [hover, setHover] = useState(null);
+  const [toast, setToast] = useState(null);
+
+  useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(null), 4200); return () => clearTimeout(t); }, [toast]);
+
+  const inScope = (i) => mode === "all" || (i >= from - 1 && i <= to - 1);
+  const count = mode === "all" ? N : (to - from + 1);
+  const setFromV = (v) => { v = +v; setFrom(v); if (to < v) setTo(v); };
+  const setToV = (v) => { v = +v; setTo(v); if (from > v) setFrom(v); };
+
+  const apply = () => { setConverted(true); setToast({ kind: "ok", msg: `Converted ${count} IF/Else → 1 Branch · non-destructive`, undo: true }); };
+  const undo = () => { setConverted(false); setToast({ kind: "info", msg: "Reverted — your IF/Else steps are back, unchanged" }); };
+
+  return { converted, mode, setMode, from, to, setFromV, setToV, hover, setHover, inScope, count, apply, undo, toast, setToast };
+}
+
+/* ===== Chrome pieces ===== */
+function Logo(){return(<div className="logo"><svg viewBox="0 0 32 32" fill="none" width="25" height="25"><circle cx="16" cy="16" r="13" stroke="#e2e8f0" strokeWidth="3.4"/><path d="M16 3a13 13 0 0113 13" stroke="#2680eb" strokeWidth="3.4" strokeLinecap="round"/><path d="M29 16a13 13 0 01-7 11.5" stroke="#27c0c8" strokeWidth="3.4" strokeLinecap="round"/></svg><span className="wm">m<i>o</i>tadata</span></div>);}
+function NavBar(){return(<div className="nav"><Logo/><div className="grow"/><button className="nav-plus"><Ic.plus size={20}/></button><button className="nav-ic"><Ic.calendar size={19}/></button><button className="nav-ic"><Ic.bell size={19}/></button><button className="nav-ic"><Ic.gear size={19}/></button><button className="nav-ic"><Ic.keyboard size={19}/></button><button className="nav-av">AS</button></div>);}
+function Rail(){return(<div className="rail">{RAIL.map((k,i)=>(<button key={k} className={"ic"+(i===3?" on":"")}>{React.createElement(Ic[k]||Ic.box,{size:20})}</button>))}<div className="grow"/><div className="itsm">ITSM</div></div>);}
+
+function HeaderOptimize({ S, onOpen }) {
+  if (S.converted) return <button className="chip chip-green" onClick={S.undo} title="Undo the conversion"><Ic.undo size={14}/> Optimized · Undo</button>;
+  return <button className="chip chip-blue" onClick={onOpen} title="Open structure optimization"><Ic.spark size={14}/> Optimize available</button>;
+}
+
+function Toast({ S }) {
+  if (!S.toast) return null;
+  const t = S.toast;
+  return (
+    <div className="toast rise">
+      <span className={"ck" + (t.kind === "info" ? " info" : "")}>{t.kind === "info" ? <Ic.undo size={12} color="#fff"/> : <Ic.check size={12} color="#fff"/>}</span>
+      {t.msg}
+      {t.undo && <button className="undo" onClick={S.undo}><Ic.undo size={13}/> Undo</button>}
+    </div>
+  );
+}
+
+/* ===== Structure views ===== */
+function TriggerNode() {
+  return (
+    <>
+      <span className="node-pill" style={{ background:"#eaf2fd", color:"#155bb5" }}><Ic.sync size={12}/> Trigger</span>
+      <div className="tnode"><div className="top"><span className="nic" style={{ background:"#eaf2fd", color:"#2680eb" }}><Ic.sync size={17}/></span><div><div className="ntitle">{TRIGGER.title}</div><div className="nsub">{TRIGGER.sub}</div></div></div></div>
+      <div className="conn" style={{ height: 26 }} />
+    </>
+  );
+}
+
+function IfLadder({ S, mini }) {
+  return (
+    <div style={{ width: "100%", display: "flex", flexDirection: "column", alignItems: "center" }}>
+      {!mini && <TriggerNode />}
+      {CATS.map(([cat, team], i) => {
+        const dim = !S.inScope(i);
+        const hot = S.hover === i;
+        return (
+          <React.Fragment key={i}>
+            <div className={"ifcard" + (hot ? " hot" : "") + (dim ? " dim" : "")}
+              onMouseEnter={() => S.setHover(i)} onMouseLeave={() => S.setHover(null)}>
+              <span className="mini-pill"><Ic.ifelse size={10}/> IF / ELSE · #{i + 1}</span>
+              <div className="ifrow"><Ic.ifelse size={15} color="var(--purple)"/> <span>If {FIELD} = <span className="cat">{cat}</span></span></div>
+              <div className="ifact"><Ic.arrow size={12}/> Assign to {team}</div>
+            </div>
+            {i < N - 1 && <div className="conn" style={{ height: 14 }} />}
+          </React.Fragment>
+        );
+      })}
+    </div>
+  );
+}
+
+function BranchFlow({ S, mini }) {
+  const kept = CATS.map((c, i) => [c, i]).filter(([, i]) => !S.inScope(i));
+  return (
+    <div style={{ width: "100%", display: "flex", flexDirection: "column", alignItems: "center" }}>
+      {!mini && <TriggerNode />}
+      <span className="node-pill" style={{ background:"#eaf2fd", color:"#155bb5" }}><Ic.branch size={12}/> Branch</span>
+      <div className="bnode"><div className="top"><span className="nic" style={{ background:"#eaf2fd", color:"#2680eb" }}><Ic.branch size={17}/></span><div><div className="ntitle">Branch on {FIELD}</div><div className="nsub">{S.count} paths + Default</div></div></div></div>
+      <div className="paths">
+        {CATS.map(([cat, team], i) => S.inScope(i) && (
+          <div key={i} className={"bpath" + (S.hover === i ? " hot" : "")}
+            onMouseEnter={() => S.setHover(i)} onMouseLeave={() => S.setHover(null)}>
+            <span className="pcat">= {cat}</span><Ic.arrow size={12} className="arrowi"/><span className="pact">Assign to {team}</span>
+          </div>
+        ))}
+        <div className="bpath def"><span className="pcat" style={{ color:"var(--muted)" }}>Default</span><Ic.arrow size={12} className="arrowi"/><span className="pact">No match → continue</span></div>
+      </div>
+      {!mini && kept.length > 0 && (
+        <>
+          <div className="conn" style={{ height: 18 }} />
+          <span className="mini-pill keep" style={{ alignSelf:"center" }}>{kept.length} IF/ELSE kept as-is</span>
+          {kept.map(([[cat, team], i]) => (
+            <React.Fragment key={i}>
+              <div className="conn" style={{ height: 10 }} />
+              <div className="ifcard" style={{ opacity:.85 }}>
+                <span className="mini-pill"><Ic.ifelse size={10}/> IF / ELSE · #{i + 1}</span>
+                <div className="ifrow"><Ic.ifelse size={15} color="var(--purple)"/> <span>If {FIELD} = <span className="cat">{cat}</span></span></div>
+                <div className="ifact"><Ic.arrow size={12}/> Assign to {team}</div>
+              </div>
+            </React.Fragment>
+          ))}
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ===== Conversion building blocks ===== */
+function ScopeControl({ S }) {
+  return (
+    <div className="scope">
+      <div className="seg">
+        <button className={S.mode === "all" ? "on" : ""} onClick={() => S.setMode("all")}>Convert all {N}</button>
+        <button className={S.mode === "range" ? "on" : ""} onClick={() => S.setMode("range")}>Convert a range</button>
+      </div>
+      {S.mode === "range" && (
+        <div className="rng">
+          <span>From</span>
+          <select value={S.from} onChange={(e) => S.setFromV(e.target.value)}>{CATS.map((_, i) => <option key={i} value={i + 1}>#{i + 1}</option>)}</select>
+          <span>to</span>
+          <select value={S.to} onChange={(e) => S.setToV(e.target.value)}>{CATS.map((_, i) => <option key={i} value={i + 1}>#{i + 1}</option>)}</select>
+          <span style={{ color: "var(--blue-700)" }}>· {S.count} selected</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PreviewColumns({ S, boxH }) {
+  return (
+    <div className="pvcols">
+      <div className="pvcol">
+        <div className="pvhd"><span className="pn before">{N}</span> Before — stacked IF / Else</div>
+        <div className="pvbox" style={{ height: boxH }}><IfLadder S={S} mini /></div>
+      </div>
+      <div className="pvarrow"><span className="circle"><Ic.arrow size={18}/></span></div>
+      <div className="pvcol">
+        <div className="pvhd"><span className="pn after">1</span> After — single Branch</div>
+        <div className="pvbox" style={{ height: boxH }}><BranchFlow S={S} mini /></div>
+      </div>
+    </div>
+  );
+}
+
+function MappingTable({ S, scrollH }) {
+  const [open, setOpen] = useState(true);
+  return (
+    <div className="mapwrap">
+      <div className="maphd" onClick={() => setOpen(!open)}>
+        <Ic.table size={15} color="var(--blue)"/> Per-condition mapping
+        <span style={{ color: "var(--faint)", fontWeight: 700 }}>· each IF condition → a Branch path</span>
+        <div style={{ flex: 1 }} />
+        <Ic.chevD size={16} color="#94a3b8" style={{ transform: open ? "none" : "rotate(-90deg)", transition: ".2s" }} />
+      </div>
+      {open && (
+        <div className="mapscroll" style={{ maxHeight: scrollH }}>
+          <table className="mtable">
+            <thead><tr><th>#</th><th>IF condition</th><th></th><th>Branch path</th><th>Action</th><th>Status</th></tr></thead>
+            <tbody>
+              {CATS.map(([cat, team], i) => {
+                const conv = S.inScope(i);
+                return (
+                  <tr key={i} className={(S.hover === i ? "hot " : "") + (conv ? "" : "keeprow")}
+                    onMouseEnter={() => S.setHover(i)} onMouseLeave={() => S.setHover(null)}>
+                    <td>{i + 1}</td>
+                    <td>{FIELD} = <span className="cat-cell">{cat}</span></td>
+                    <td className="arrowcell"><Ic.arrow size={13}/></td>
+                    <td className="cat-cell">{conv ? cat : "—"}</td>
+                    <td>Assign to {team}</td>
+                    <td>{conv ? <span className="tagm conv"><Ic.check size={11}/> Convert</span> : <span className="tagm keep">Keep as IF</span>}</td>
+                  </tr>
+                );
+              })}
+              <tr className="defrow">
+                <td>—</td><td style={{ color:"var(--muted)" }}>No condition matched</td>
+                <td className="arrowcell"><Ic.arrow size={13}/></td>
+                <td className="cat-cell">Default</td><td style={{ color:"var(--muted)" }}>Continue workflow</td>
+                <td><span className="tagm conv"><Ic.check size={11}/> Auto-added</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ===== Conversion modal (Options 1 & 2) ===== */
+function ConvertModal({ S, onClose }) {
+  return (
+    <>
+      <div className="scrim soft fade-in" onClick={onClose} />
+      <div className="modal-wrap pop-in">
+        <div className="modal" style={{ width: 1000, maxHeight: 690 }}>
+          <div className="modal-head">
+            <span className="pi" style={{ width:32, height:32, borderRadius:9, background:"var(--blue-50)", color:"var(--blue)", display:"flex", alignItems:"center", justifyContent:"center" }}><Ic.branch size={17}/></span>
+            <div style={{ flex: 1 }}>
+              <h2 style={{ fontSize:16, fontWeight:800, color:"#1c2533", margin:0 }}>Convert IF/Else → Branch</h2>
+              <div style={{ fontSize:12, color:"var(--muted)", marginTop:1 }}>{detLine}</div>
+            </div>
+            <button className="nav-ic" onClick={onClose}><Ic.close size={18}/></button>
+          </div>
+          <div className="modal-body" style={{ flex: 1 }}>
+            <div style={{ marginBottom: 16 }}><ScopeControl S={S} /></div>
+            <PreviewColumns S={S} boxH={262} />
+            <div style={{ height: 16 }} />
+            <MappingTable S={S} scrollH={188} />
+          </div>
+          <div className="modal-foot">
+            <span style={{ fontSize:12, color:"var(--muted)", display:"flex", alignItems:"center", gap:7 }}><Ic.info size={14} color="#7c8aa0"/> Non-destructive — you can undo this anytime.</span>
+            <div style={{ display:"flex", gap:10 }}>
+              <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
+              <button className="btn btn-pri" onClick={() => { S.apply(); onClose(); }}><Ic.branch size={14}/> Convert {S.count} → 1 Branch</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+/* ===== Builder frame ===== */
+function BuilderFrame({ S, headerExtra, onOpen, content, leftPanel, rightPanel, overlay, float }) {
+  return (
+    <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+      <NavBar />
+      <div className="body">
+        <Rail />
+        <div className="work-main">
+          <div className="head">
+            <button className="back"><Ic.chevL size={18}/></button>
+            <h1>Create Workflow</h1>
+            <div className="grow" />
+            {headerExtra !== undefined ? headerExtra : <HeaderOptimize S={S} onOpen={onOpen} />}
+            <button className="btn btn-ghost">Save As Draft</button>
+            <button className="btn btn-pri"><Ic.share size={14}/> Publish</button>
+          </div>
+          <div style={{ flex: 1, display: "flex", minHeight: 0, position: "relative" }}>
+            {leftPanel}
+            {content}
+            {rightPanel}
+            {float}
+          </div>
+        </div>
+      </div>
+      {overlay}
+      <Toast S={S} />
+    </div>
+  );
+}
+
+function BuilderCanvas({ S, banner }) {
+  return (
+    <div className="canvas">
+      <div className="flow-col">{S.converted ? <BranchFlow S={S} /> : <IfLadder S={S} />}</div>
+      {banner}
+    </div>
+  );
+}
+
+/* ============================================================
+   OPTION 1 — Inline canvas suggestion chip → preview overlay
+   ============================================================ */
+function Option1() {
+  const S = useCleanup();
+  const [modal, setModal] = useState(false);
+  const [banner, setBanner] = useState(true);
+
+  const chip = !S.converted && banner && (
+    <div className="sugg rise" style={{ position:"absolute", top:18, left:"50%", transform:"translateX(-50%)", zIndex:14 }}>
+      <span className="si"><Ic.spark size={19}/></span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div className="lbl">Suggestion · optional</div>
+        <div className="stxt"><b>{N} IF/Else</b> in a row route on <b>{FIELD}</b>. A <b>Branch</b> would do this in one node.</div>
+      </div>
+      <button className="btn btn-pri btn-sm" onClick={() => setModal(true)}><Ic.branch size={13}/> Preview convert</button>
+      <button className="nav-ic" style={{ width:28, height:28 }} onClick={() => setBanner(false)}><Ic.close size={15}/></button>
+    </div>
+  );
+
+  return (
+    <BuilderFrame S={S} onOpen={() => setModal(true)}
+      content={<BuilderCanvas S={S} banner={chip} />}
+      overlay={modal && <ConvertModal S={S} onClose={() => setModal(false)} />} />
+  );
+}
+
+/* ============================================================
+   OPTION 2 — Pre-publish review drawer item → preview overlay
+   ============================================================ */
+function Option2() {
+  const S = useCleanup();
+  const [drawer, setDrawer] = useState(true);
+  const [modal, setModal] = useState(false);
+
+  const drawerEl = drawer && (
+    <div className="drawer slide-in">
+      <div className="phead">
+        <span className="pi"><Ic.checklist size={17}/></span>
+        <div style={{ flex: 1 }}><h2>Pre-publish review</h2><div style={{ fontSize:12, color:"var(--muted)", marginTop:1 }}>Optional improvements before you publish</div></div>
+        <button className="nav-ic" onClick={() => setDrawer(false)}><Ic.close size={18}/></button>
+      </div>
+      <div className="pscroll">
+        <div className="applied" style={{ background:"#f4f7fb", border:"1px dashed #c9d5e4", color:"#5d6470" }}>
+          <Ic.checkC size={16} color="var(--green)"/> No blocking errors · workflow is ready to publish
+        </div>
+        <div className="sec-label"><Ic.spark size={13} color="var(--blue)"/> Optimizations <span style={{ marginLeft:2, color:"var(--faint)", fontWeight:700, textTransform:"none", letterSpacing:0 }}>· won’t block publish</span></div>
+
+        {!S.converted ? (
+          <div className="optitem">
+            <div className="ot">
+              <span className="oic"><Ic.branch size={16}/></span>
+              <div style={{ flex: 1 }}><div style={{ fontWeight:800, fontSize:13.5, color:"#1c2533" }}>Optimize: {N} IF/Else → 1 Branch</div><div style={{ fontSize:11.5, color:"var(--faint)", marginTop:1 }}>Routes on {FIELD} · same behaviour, lighter structure</div></div>
+            </div>
+            <p style={{ fontSize:12, color:"var(--muted)", lineHeight:1.5, margin:"0 0 11px" }}>{detLine} Preview the before/after and per-condition mapping before applying.</p>
+            <button className="btn btn-pri btn-sm" onClick={() => setModal(true)}><Ic.branch size={13}/> Review &amp; convert</button>
+          </div>
+        ) : (
+          <div className="optitem" style={{ borderColor:"var(--green-line)", background:"linear-gradient(180deg,#fff,#f7fdf9)" }}>
+            <div className="ot">
+              <span className="oic" style={{ background:"var(--green-bg)", color:"var(--green)" }}><Ic.checkC size={16}/></span>
+              <div style={{ flex: 1 }}><div style={{ fontWeight:800, fontSize:13.5, color:"var(--green-ink)" }}>Optimized · {S.count} IF/Else → 1 Branch</div><div style={{ fontSize:11.5, color:"var(--faint)", marginTop:1 }}>Reversible — restore the original anytime</div></div>
+            </div>
+            <button className="btn btn-ghost btn-sm" onClick={S.undo}><Ic.undo size={13}/> Undo conversion</button>
+          </div>
+        )}
+
+        <div className="sec-label"><Ic.info size={13} color="var(--amber)"/> Notes</div>
+        <div style={{ border:"1px solid var(--line)", borderLeft:"3px solid var(--amber)", borderRadius:10, padding:"11px 12px", fontSize:12, color:"var(--muted)", lineHeight:1.5 }}>
+          <b style={{ color:"#1c2533" }}>Deep IF/Else nesting</b> can be harder to scan and reorder. Converting to a Branch keeps every route in one place.
+        </div>
+      </div>
+    </div>
+  );
+
+  const float = !drawer && (
+    <button className="reopen-cta rise" style={{ right:26, bottom:24 }} onClick={() => setDrawer(true)}>
+      <Ic.checklist size={16} color="var(--blue)"/> Reopen review
+    </button>
+  );
+
+  return (
+    <BuilderFrame S={S} onOpen={() => setDrawer(true)}
+      headerExtra={<button className="chip chip-blue" onClick={() => setDrawer(true)}><Ic.checklist size={14}/> Review</button>}
+      content={<BuilderCanvas S={S} />}
+      rightPanel={drawerEl} float={float}
+      overlay={modal && <ConvertModal S={S} onClose={() => setModal(false)} />} />
+  );
+}
+
+/* ============================================================
+   OPTION 3 — Dedicated "Optimize structure" panel
+   ============================================================ */
+function Option3() {
+  const S = useCleanup();
+  const [panel, setPanel] = useState(true);
+
+  const dedicated = (
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, background:"#fff" }}>
+      <div className="opt-sub">
+        <span className="pi" style={{ width:34, height:34, borderRadius:9, background:"var(--blue-50)", color:"var(--blue)", display:"flex", alignItems:"center", justifyContent:"center" }}><Ic.spark size={18}/></span>
+        <div style={{ minWidth: 0 }}>
+          <h2>Optimize structure</h2>
+          <div style={{ fontSize:12, color:"var(--muted)" }}>{detLine}</div>
+        </div>
+        <div className="grow" style={{ flex: 1 }} />
+        <ScopeControl S={S} />
+        <button className="btn btn-ghost" onClick={() => setPanel(false)}><Ic.chevL size={14}/> Back to canvas</button>
+        {S.converted
+          ? <button className="btn btn-ghost" onClick={S.undo}><Ic.undo size={14}/> Undo</button>
+          : <button className="btn btn-pri" onClick={S.apply}><Ic.branch size={14}/> Convert {S.count} → 1 Branch</button>}
+      </div>
+
+      {S.converted && (
+        <div style={{ padding:"12px 20px 0" }}><div className="applied"><Ic.checkC size={17}/> Converted {S.count} IF/Else into one Branch · this is non-destructive and fully reversible.<div style={{ flex:1 }}/><button className="link" onClick={S.undo} style={{ color:"var(--green-ink)" }}><Ic.undo size={13}/> Undo</button></div></div>
+      )}
+
+      <div style={{ flex: 1, display:"flex", minHeight:0, gap:16, padding:"14px 20px 6px" }}>
+        <div className="pvcol">
+          <div className="pvhd"><span className="pn before">{N}</span> Before — stacked IF / Else {S.mode==="range" && <span style={{ color:"var(--faint)", fontWeight:700 }}>· {S.count} highlighted</span>}</div>
+          <div className="pvbox" style={{ flex: 1 }}><IfLadder S={S} mini /></div>
+        </div>
+        <div className="pvarrow" style={{ alignSelf:"center" }}><span className="circle"><Ic.arrow size={18}/></span></div>
+        <div className="pvcol">
+          <div className="pvhd"><span className="pn after">1</span> After — single Branch</div>
+          <div className="pvbox" style={{ flex: 1 }}><BranchFlow S={S} mini /></div>
+        </div>
+      </div>
+      <div style={{ flex: "0 0 234px", padding:"6px 20px 18px", minHeight:0, display:"flex" }}>
+        <div style={{ flex: 1, minHeight: 0 }}><MappingTable S={S} scrollH={186} /></div>
+      </div>
+    </div>
+  );
+
+  const builderEntry = (
+    <div className="canvas">
+      <div className="flow-col">{S.converted ? <BranchFlow S={S} /> : <IfLadder S={S} />}</div>
+      {!S.converted && (
+        <div className="sugg rise" style={{ position:"absolute", top:18, left:"50%", transform:"translateX(-50%)", zIndex:14 }}>
+          <span className="si"><Ic.spark size={19}/></span>
+          <div style={{ flex: 1 }}><div className="lbl">Suggestion · optional</div><div className="stxt"><b>{N} IF/Else</b> route on <b>{FIELD}</b> — open Optimize structure to review.</div></div>
+          <button className="btn btn-pri btn-sm" onClick={() => setPanel(true)}><Ic.spark size={13}/> Optimize structure</button>
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <BuilderFrame S={S}
+      headerExtra={S.converted
+        ? <button className="chip chip-green" onClick={S.undo}><Ic.undo size={14}/> Optimized · Undo</button>
+        : <button className="chip chip-blue" onClick={() => setPanel(true)}><Ic.spark size={14}/> Optimize structure</button>}
+      content={panel ? dedicated : builderEntry} />
+  );
+}
+
+/* ===== Root ===== */
+const OPTIONS = [Option1, Option2, Option3];
+const CAPTIONS = [
+  { name: "Inline canvas chip", fit: "Spotted right on the cluster; opens a focused before/after convert overlay. Best for in-context, one-off cleanups." },
+  { name: "Pre-publish review item", fit: "The optimization rides along in the publish review list. Best for catching cleanups at publish time." },
+  { name: "Dedicated Optimize panel", fit: "Full before/after canvases + per-condition mapping table. Best for reviewing large conversions in detail." },
+];
+function Chrome({ opt, setOpt, replay }) {
+  const cap = CAPTIONS[opt];
+  return (
+    <>
+      <div className="ch-row">
+        <div className="ch-brand"><span className="dot"/>Motadata ServiceOps<small>· IF/Else → Branch Cleanup</small></div>
+        <div className="ch-tabs">{CAPTIONS.map((c, i) => (<button key={i} className={"ch-tab" + (i === opt ? " on" : "")} onClick={() => setOpt(i)}><span className="n">{i + 1}</span>{c.name}</button>))}</div>
+        <div className="ch-spacer"/>
+        <button className="ch-replay" onClick={replay}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 109-9 9 9 0 00-7 3.3M3 3v4h4"/></svg>Replay</button>
+      </div>
+      <div className="ch-cap"><span className="tag">Option {opt + 1}</span><b>{cap.name}</b><span>— {cap.fit}</span></div>
+    </>
+  );
+}
+function Root() {
+  const [opt, setOptRaw] = useState(0);
+  const [nonce, setNonce] = useState(0);
+  const setOpt = (i) => { setOptRaw(i); setNonce(n => n + 1); };
+  const replay = () => setNonce(n => n + 1);
+  const Active = OPTIONS[opt];
+  return (
+    <>
+      {ReactDOM.createPortal(<Chrome opt={opt} setOpt={setOpt} replay={replay} />, document.getElementById("chrome"))}
+      {ReactDOM.createPortal(<div key={opt + "-" + nonce} style={{ position:"absolute", inset:0, display:"flex", flexDirection:"column" }}><Active /></div>, document.getElementById("app"))}
+    </>
+  );
+}
+function fit() {
+  const stage = document.getElementById("stage"), node = document.getElementById("fit");
+  if (!stage || !node) return;
+  node.style.transform = `scale(${Math.min(stage.clientWidth / 1320, stage.clientHeight / 864, 1.18)})`;
+}
+window.addEventListener("resize", fit);
+new ResizeObserver(fit).observe(document.getElementById("stage"));
+fit();
+const holder = document.createElement("div");
+ReactDOM.createRoot(holder).render(<Root />);
+setTimeout(fit, 30); setTimeout(fit, 200);
+  </script>
+</body>
+</html>
