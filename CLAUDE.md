@@ -2,6 +2,11 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Deployment
+Repo: https://github.com/zenichakalasiya/ServiceOps_Workflow_Usecases
+Live URL: https://zenichakalasiya.github.io/ServiceOps_Workflow_Usecases/
+(GitHub Pages via `.github/workflows/deploy.yml` — builds `app/` with Vite, base path `/ServiceOps_Workflow_Usecases/`.)
+
 ## What this is
 
 UI design prototypes (not production code) for a **Motadata ServiceOps Workflow-builder feature**: detecting a stacked chain of IF/Else nodes that route on the same field and offering a safe, reversible conversion into a single **Branch** node. This is a design/UX exploration repo — there is no backend, no build, and no tests. The "source of truth" for the feature's intent, use cases, correctness rules, and decisions is **`IF-Else to Branch — Design Documentation.md`** — read it before changing prototype behavior.
