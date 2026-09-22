@@ -1,4 +1,20 @@
 import React, { useState, useEffect, useRef, useReducer } from "react";
+import railDashboard from "./assets/rail/dashboard.svg";
+import railTicket from "./assets/rail/ticket.svg";
+import railUserExcl from "./assets/rail/user-exclamation.svg";
+import railRepeat from "./assets/rail/repeat.svg";
+import railShare from "./assets/rail/share.svg";
+import railLaptop from "./assets/rail/laptop.svg";
+import railPatch from "./assets/rail/patch.svg";
+import railBox from "./assets/rail/box.svg";
+import railProjects from "./assets/rail/projects.svg";
+import railBulb from "./assets/rail/bulb-mask.svg";
+import railReport from "./assets/rail/report.svg";
+import railUserCheck from "./assets/rail/user-check.svg";
+import railTasks from "./assets/rail/tasks.svg";
+import logo5 from "./assets/rail/logo-5.svg";
+import logo6 from "./assets/rail/logo-6.svg";
+import logo7 from "./assets/rail/logo-7.svg";
 import PublishPopoverV2 from "./PublishHealthV2.jsx";   // V2: stacked scenario cards
 // Which publish review renders is env-driven so both can run side by side:
 //   npm run dev     → V1 tabs            (http://localhost:5173)
@@ -64,7 +80,13 @@ export const Ic = {
   clock:(p)=><I {...p}><circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 1.8"/></I>,
   search:(p)=><I {...p}><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></I>,
 };
-const RAIL = ["dashboard","ticket","people","loop","share","monitor","gear","box","sitemap","bulb","doc","checklist"];
+// Left rail (Figma "SideMenu"): icon assets exported from the design. `cls` = per-icon inset tweak, `on` = active item.
+const RAIL = [
+  {k:"dashboard", src:railDashboard}, {k:"ticket", src:railTicket}, {k:"user-exclamation", src:railUserExcl},
+  {k:"repeat", src:railRepeat, on:true}, {k:"share", src:railShare}, {k:"laptop", src:railLaptop},
+  {k:"patch", src:railPatch, cls:"patch"}, {k:"box", src:railBox, cls:"box"}, {k:"projects", src:railProjects},
+  {k:"bulb", src:railBulb}, {k:"report", src:railReport}, {k:"user-check", src:railUserCheck}, {k:"tasks", src:railTasks},
+];
 
 /* ===== Data — an OR-ladder: many IF/Else, all leading to the SAME action ===== */
 const CONDS = [
@@ -295,7 +317,7 @@ function useDragScroll() {
     if (cleanup.current) { cleanup.current(); cleanup.current = null; }
     if (!el) return;
     let down=false, sx=0, sy=0, sl=0, st=0, moved=false;
-    const onDown=(e)=>{ if(e.button!==0) return; if(e.target.closest("button,a,input,select,textarea,.gnode,.sugg,.reopen,.lasso-badge")) return;
+    const onDown=(e)=>{ if(e.button!==0) return; if(e.target.closest("button,a,input,select,textarea,.gnode,.cnote,.sugg,.reopen,.lasso-badge")) return;
       down=true; moved=false; sx=e.clientX; sy=e.clientY; sl=el.scrollLeft; st=el.scrollTop; el.classList.add("grabbing"); };
     const onMove=(e)=>{ if(!down) return; const dx=e.clientX-sx, dy=e.clientY-sy; if(!moved && Math.abs(dx)+Math.abs(dy)>3) moved=true;
       if(moved){ e.preventDefault(); el.scrollLeft=sl-dx; el.scrollTop=st-dy; } };
@@ -310,7 +332,14 @@ function useDragScroll() {
 /* ===== chrome ===== */
 function Logo(){return(<div className="logo"><svg viewBox="0 0 32 32" fill="none" width="24" height="24"><circle cx="16" cy="16" r="13" stroke="#e2e8f0" strokeWidth="3.4"/><path d="M16 3a13 13 0 0113 13" stroke="#2680eb" strokeWidth="3.4" strokeLinecap="round"/><path d="M29 16a13 13 0 01-7 11.5" stroke="#27c0c8" strokeWidth="3.4" strokeLinecap="round"/></svg><span className="wm">m<i>o</i>tadata</span></div>);}
 function NavBar(){return(<div className="nav"><Logo/><div className="grow"/><button className="nav-plus"><Ic.plus size={19}/></button><button className="nav-ic"><Ic.calendar size={18}/></button><button className="nav-ic"><Ic.bell size={18}/></button><button className="nav-ic"><Ic.gear size={18}/></button><button className="nav-ic"><Ic.keyboard size={18}/></button><button className="nav-ic"><Ic.warn2 size={18}/></button><button className="nav-av">AS</button></div>);}
-function Rail(){return(<div className="rail">{RAIL.map((k,i)=>(<button key={k} className={"ic"+(i===3?" on":"")}>{React.createElement(Ic[k]||Ic.box,{size:19})}</button>))}<div className="grow"/><div className="itsm">ITSM</div></div>);}
+function RailLogo({size=25}){return(<span className="rail-logo" style={{width:size,height:size}}><img className="l7" src={logo7} alt=""/><img className="l6" src={logo6} alt=""/><img className="l5" src={logo5} alt=""/></span>);}
+function Rail(){return(<div className="rail">
+  <div className="rail-top">
+    <div className="rail-brand"><RailLogo/></div>
+    {RAIL.map(r=>(<button key={r.k} className={"rail-item"+(r.on?" on":"")} title={r.k}><span className={"rail-ic "+(r.cls||"")}><img src={r.src} alt=""/></span></button>))}
+  </div>
+  <div className="rail-bottom"><div className="rail-itsm"><span>ITSM</span></div><RailLogo size={24}/></div>
+</div>);}
 
 // full condition label (used by "Go to Previous Node")
 const nodeShort = (id) => {
@@ -327,11 +356,54 @@ const nodeTypeName = (id) => {
   return id;
 };
 
-/* sticky note on the canvas — double-click to edit */
+/* canvas minimap — node overview + a draggable-ish viewport rect; click to recenter */
+function Minimap({ view, zoom }) {
+  const W = 184, H = 108;
+  const sc = Math.min(W / view.contentW, H / view.contentH);
+  const iw = view.contentW * sc, ih = view.contentH * sc;
+  const [vp, setVp] = useState({ left:0, top:0, w:0, h:0 });
+  useEffect(() => {
+    const el = document.querySelector(".canvas"); if (!el) return;
+    const update = () => setVp({
+      left: (el.scrollLeft / zoom) * sc, top: (el.scrollTop / zoom) * sc,
+      w: (el.clientWidth / zoom) * sc, h: (el.clientHeight / zoom) * sc,
+    });
+    update(); el.addEventListener("scroll", update); window.addEventListener("resize", update);
+    return () => { el.removeEventListener("scroll", update); window.removeEventListener("resize", update); };
+  }, [zoom, sc, view.contentW, view.contentH]);
+  const recenter = (e) => {
+    const el = document.querySelector(".canvas"); if (!el) return;
+    const r = e.currentTarget.getBoundingClientRect();
+    const cx = (e.clientX - r.left) / sc, cy = (e.clientY - r.top) / sc;   // → content coords
+    el.scrollTo({ left: cx*zoom - el.clientWidth/2, top: cy*zoom - el.clientHeight/2, behavior:"smooth" });
+  };
+  return (
+    <div className="minimap" style={{ width:W, height:H }} onClick={recenter}>
+      <div className="mm-inner" style={{ width:iw, height:ih }}>
+        {view.nodes.map(n => (<div key={n.id} className={"mm-node mm-"+n.type} style={{ left:n.x*sc, top:n.y*sc, width:Math.max(3,n.w*sc), height:Math.max(3,n.h*sc) }}/>))}
+        <div className="mm-vp" style={{ left:vp.left, top:vp.top, width:vp.w, height:vp.h }}/>
+      </div>
+    </div>
+  );
+}
+
+/* sticky note on the canvas — drag to move, double-click to edit */
 function Note({ note, S }) {
   const [editing, setEditing] = useState(false);
+  const onDown = (e) => {
+    if (e.button!==0 || editing) return;
+    if (e.target.closest(".cnote-x, .cnote-edit")) return;   // don't drag from the × or while typing
+    e.preventDefault(); e.stopPropagation();
+    const sx=e.clientX, sy=e.clientY, bx=note.x, by=note.y; let moved=false;
+    document.body.style.userSelect="none";
+    const onMove=(ev)=>{ const k=window.__scale||1; const dx=(ev.clientX-sx)/k, dy=(ev.clientY-sy)/k;
+      if(!moved && Math.abs(dx)+Math.abs(dy)>3) moved=true;
+      if(moved) S.moveNote(note.id, Math.max(8,bx+dx), Math.max(8,by+dy)); };
+    const onUp=()=>{ window.removeEventListener("mousemove",onMove); window.removeEventListener("mouseup",onUp); document.body.style.userSelect=""; };
+    window.addEventListener("mousemove",onMove); window.addEventListener("mouseup",onUp);
+  };
   return (
-    <div className="cnote" style={{ left:note.x, top:note.y }} onDoubleClick={()=>setEditing(true)}>
+    <div className="cnote" style={{ left:note.x, top:note.y }} onMouseDown={onDown} onDoubleClick={()=>setEditing(true)}>
       {editing
         ? <textarea className="cnote-edit" autoFocus defaultValue={note.text} placeholder="Type your note…"
             onBlur={(e)=>{ S.setNoteText(note.id, e.target.value); setEditing(false); }}/>
@@ -2044,6 +2116,7 @@ function Workflow() {
     setNotes(ns=>[...ns, { id, x, y, text:"" }]); setToast({ kind:"info", msg:"Note added — double-click to edit" });
   };
   const setNoteText = (id, text) => setNotes(ns=>ns.map(nt=>nt.id===id ? { ...nt, text } : nt));
+  const moveNote = (id, x, y) => setNotes(ns=>ns.map(nt=>nt.id===id ? { ...nt, x, y } : nt));
   const deleteNote = (id) => setNotes(ns=>ns.filter(nt=>nt.id!==id));
   const runCmd = (key) => {
     setSelected(null);
@@ -2127,7 +2200,7 @@ function Workflow() {
     confNode, setConfNode, sfDetail, setSfDetail,
     merges, addCtx, selMerge, hoverMerge, choiceTop, existingMerge, openNodeSel, pickNode, addMergeNew, connectToMerge, removeMergeInput,
     setHoverMerge, setSelMerge, deleteMerge, duplicateMerge, toggleMergeDisabled, removeMergeEmpty,
-    mod, setMod, addNote, runCmd, notes, setNoteText, deleteNote,
+    mod, setMod, addNote, runCmd, notes, setNoteText, deleteNote, moveNote,
     // open the right detail screen for a conflicted node: the flow detail if it's on a flow, else the node detail
     showConflictDetail:(nodeId)=>{
       const flow = SUBFLOWS.find(s=>s.detailed && s.segment.map(annOf).includes(nodeId));
@@ -2170,33 +2243,26 @@ function Workflow() {
 
             {selected && (selected==="nodesel" ? <NodeSelectionPanel S={S}/> : selected==="merge" ? <MergePopover S={S}/> : selected==="module" ? <ModulePopover S={S}/> : selected==="cmdbar" ? <CommandBar S={S}/> : selected==="publish" ? (PUB_V2 ? <PublishPopoverV2 S={S}/> : <PublishPopover S={S}/>) : selected==="branch" ? <BranchPopover S={S}/> : selected==="trigger" ? <TriggerPopover S={S}/> : selected==="action" ? <ActionPopover S={S} act={selectedAct}/> : <GroupPopover S={S}/>)}
 
-            {/* canvas toolbar — shown when the drawer is closed */}
-            {!selected && (
-              <div className="cvrail">
-                <button className="cvr-btn" onClick={()=>openNodeSel("trig")}><Ic.plus size={18}/><span className="cvr-tip">Add Node</span></button>
-                <button className="cvr-btn" onClick={()=>setSelected("module")}><Ic.gear size={18}/><span className="cvr-tip">Workflow Module configuration</span></button>
-                <button className="cvr-btn" onClick={addNote}><Ic.doc size={18}/><span className="cvr-tip">Add note</span></button>
-                <button className="cvr-btn" onClick={()=>setSelected("cmdbar")}><Ic.search size={18}/><span className="cvr-tip">Command bar</span></button>
-                <div className="cvr-sep"/>
-                <button className="cvr-btn" onClick={()=>setSelected(converted?"branch":"group")}><Ic.chevL size={18}/><span className="cvr-tip">Open configuration</span></button>
+            {/* bottom-left canvas controls — two containers */}
+            <div className="cvdock-wrap">
+              {/* actions */}
+              <div className="cvdock-bar standalone">
+                <button className="cvd-btn" onClick={()=>openNodeSel("trig")}><Ic.plus size={17}/><span className="cvd-tip">Add Node</span></button>
+                <button className="cvd-btn" onClick={()=>setSelected("cmdbar")}><Ic.search size={17}/><span className="cvd-tip">Search</span></button>
+                <button className="cvd-btn" onClick={addNote}><Ic.doc size={17}/><span className="cvd-tip">Add sticky note</span></button>
+                <span className="cvd-sep"/>
+                <button className="cvd-btn" onClick={undoMove} disabled={!canUndo}><Ic.undo2 size={16}/><span className="cvd-tip">Undo</span></button>
+                <button className="cvd-btn" onClick={redoMove} disabled={!canRedo}><Ic.redo2 size={16}/><span className="cvd-tip">Redo</span></button>
               </div>
-            )}
-
-            {/* sticky canvas toolbar — zoom / fit / undo-redo / pan-select */}
-            <div className="cvtools">
-              <div className="cvgrp">
-                <button className="cvbtn" onClick={zoomOut} disabled={zoom<=ZMIN} title="Zoom out"><Ic.zoomout size={17}/></button>
-                <button className="cvpct" onClick={zoomReset} title="Reset to 100%">{Math.round(zoom*100)}%</button>
-                <button className="cvbtn" onClick={zoomIn} disabled={zoom>=ZMAX} title="Zoom in"><Ic.zoomin size={17}/></button>
-                <button className="cvbtn" onClick={zoomFit} title="Fit to screen"><Ic.fit size={16}/></button>
-              </div>
-              <div className="cvgrp">
-                <button className="cvbtn" onClick={undoMove} disabled={!canUndo} title="Undo move"><Ic.undo2 size={16}/></button>
-                <button className="cvbtn" onClick={redoMove} disabled={!canRedo} title="Redo move"><Ic.redo2 size={16}/></button>
-              </div>
-              <div className="cvgrp">
-                <button className={"cvbtn"+(tool==="pan"?" on":"")} onClick={()=>setTool("pan")} title="Pan (hand)"><Ic.hand size={16}/></button>
-                <button className={"cvbtn"+(tool==="select"?" on":"")} onClick={()=>setTool("select")} title="Select / move"><Ic.cursor size={16}/></button>
+              {/* minimap + zoom */}
+              <div className="cvdock">
+                <Minimap view={view} zoom={zoom}/>
+                <div className="cvdock-bar">
+                  <button className="cvd-btn" onClick={zoomOut} disabled={zoom<=ZMIN}><Ic.zoomout size={17}/><span className="cvd-tip">Zoom out</span></button>
+                  <button className="cvd-pct" onClick={zoomReset} title="Reset to 100%">{Math.round(zoom*100)}%</button>
+                  <button className="cvd-btn" onClick={zoomIn} disabled={zoom>=ZMAX}><Ic.zoomin size={17}/><span className="cvd-tip">Zoom in</span></button>
+                  <button className="cvd-btn" onClick={zoomFit}><Ic.fit size={16}/><span className="cvd-tip">Fit</span></button>
+                </div>
               </div>
             </div>
           </div>

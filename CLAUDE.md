@@ -1,5 +1,7 @@
 # CLAUDE.md
 
+**On session start:** If `HANDOFF.md` exists in this directory, read it before anything else for the latest state of the work.
+
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Deployment
@@ -44,7 +46,7 @@ The `archive/*.html` prototypes still run by opening them directly in a browser 
 The active code lives in **`app/src/App.jsx`** (one module: icons → data → layout engine → components → `Workflow` → `App`) and **`app/src/index.css`** (all styles). It renders a fake ServiceOps app shell (nav + left rail + header) filling the window, plus a node-graph canvas and a right-side configuration drawer. The standalone HTML shares this structure inline but has **diverged** — treat `app/` as the source of truth.
 
 - The default-exported **`App`** is just `<div id="app"><Workflow/></div>` — **no presentation frame**. `#app` fills the window (`width/height:100%`; `html,body,#root` are `height:100%`); the builder UI is the **`Workflow`** component. (The old `#chrome` bar + `#stage`/`#fit` scale-to-fit wrapper was removed; it still exists only in the standalone HTML.) Because there's no scale transform, `window.__scale` is never set and defaults to `1` in `startDrag`, so drag deltas map 1:1 to canvas coordinates.
-- **`Ic` / `I`** — an inline SVG icon set (`Ic.branch`, `Ic.ifelse`, etc.). `RAIL` lists the left-rail icons.
+- **`Ic` / `I`** — an inline SVG icon set (`Ic.branch`, `Ic.ifelse`, etc.) used across the canvas/drawer. The left rail (`.rail`, component `Rail`) is separate: it was ported pixel-for-pixel from the Figma "Nodebase-Workflow" file's `SideMenu` node and renders from real exported icon assets in **`app/src/assets/rail/`** (not the `Ic` set) — `RAIL` in `App.jsx` maps each row to its asset + active/cls flags. See `## Handoff` for the sync's status/open items.
 - **Theme** — Nunito Sans + CSS custom properties in `:root` (primary blue `#2680eb`). Match the existing tokens/shadows when adding UI; keep styles in **`app/src/index.css`**.
 
 ### Active app (`app/src/App.jsx`)
@@ -66,3 +68,6 @@ The active code lives in **`app/src/App.jsx`** (one module: icons → data → l
 ## Domain constraint that governs conversion correctness
 
 The ServiceOps **Branch node runs *every* matching path, not just the first** (a chained IF/Else is first-match). Therefore a conversion is only behavior-preserving when the conditions are **mutually exclusive** (e.g. same-field equality on a single-valued field). Any detection/merge logic must respect this gate — see §3 and §5 of the design doc. Conversions are presented as **non-destructive, reversible (Undo), preview-before-apply, and dismissable** — preserve those guarantees in any UI change.
+
+## Handoff
+Latest session state is in [HANDOFF.md](HANDOFF.md) — read it first.
